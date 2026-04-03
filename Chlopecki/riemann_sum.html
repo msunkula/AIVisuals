@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Riemann Sum Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f4f8;
+    --surface: #ffffff;
+    --surface2: #eeeef5;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.28);
+    --text: #1a1a2e;
+    --muted: #5e5e78;
+    --accent: #6255e0;
+    --accent2: #0d7a6a;
+    --accent-glow: rgba(98,85,224,0.15);
+    --danger: #e0455a;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(98,85,224,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(98,85,224,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 860px;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  h1 span {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(124,108,252,0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ─── Panel ─── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ctrl-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .error-msg {
+    font-size: 11px;
+    color: var(--danger);
+    font-family: var(--font-mono);
+    min-height: 14px;
+  }
+
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .range-key {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    width: 10px;
+    flex-shrink: 0;
+    font-style: italic;
+  }
+
+  .range-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 -1.25rem;
+  }
+
+  /* Method tabs */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 7px 4px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 400;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  /* Stat cards */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .stat-val.accent { color: var(--accent); }
+  .stat-val.accent2 { color: var(--accent2); }
+
+  /* Chart area */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chart-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    height: 420px;
+  }
+
+  /* Error indicator for convergence */
+  .error-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .error-bar-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .error-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .error-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.3s ease;
+  }
+
+  .error-pct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Riemann <span>Sum</span> Visualizer</h1>
+    <span class="badge">Calculus</span>
+  </header>
+
+  <div class="layout">
+    <!-- Controls panel -->
+    <div class="panel">
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">f(x) =</div>
+        <input type="text" id="fn-input" value="x^2" placeholder="e.g. sin(x), x^3 - 2*x" autocomplete="off" spellcheck="false" />
+        <div class="error-msg" id="fn-error"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Bounds</div>
+        <div class="range-row">
+          <span class="range-key">a</span>
+          <input type="text" id="a-text" value="0" style="flex:1;padding:7px 10px;font-size:13px;" />
+        </div>
+        <div class="range-row">
+          <span class="range-key">b</span>
+          <input type="text" id="b-text" value="4" style="flex:1;padding:7px 10px;font-size:13px;" />
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Intervals — <span id="n-display" style="color:var(--accent)">8</span></div>
+        <div class="range-row">
+          <input type="range" id="n-slider" min="1" max="100" step="1" value="8" />
+          <input type="text" id="n-text" value="8" style="width:54px;padding:7px 10px;font-size:13px;flex-shrink:0;" />
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">Enter a whole number from 1 to 100.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Endpoint method</div>
+        <div class="tabs" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+          <button class="tab active" data-m="left">Left</button>
+          <button class="tab" data-m="right">Right</button>
+          <button class="tab" data-m="mid">Midpoint</button>
+          <button class="tab" data-m="trap">Trapezoid</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label" id="stat-riemann-label">Riemann sum</div>
+          <div class="stat-val accent" id="stat-riemann">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">True area</div>
+          <div class="stat-val accent2" id="stat-exact">—</div>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Approximation error</div>
+        <div class="error-bar-wrap">
+          <div class="error-bar-track">
+            <div class="error-bar-fill" id="err-fill" style="width: 0%"></div>
+          </div>
+          <span class="error-pct" id="err-pct">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <span class="chart-title">Graph — f(x) with rectangles</span>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#3ecfb2"></div>
+            f(x)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:rgba(98,85,224,0.45)"></div>
+            rectangles
+          </div>
+        </div>
+      </div>
+      <div class="canvas-container">
+        <canvas id="rs-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let method = 'left';
+let fnStr = 'x^2';
+let a = 0, b = 4, n = 8;
+let chart = null;
+let raf = null;
+
+function parseExpr(str) {
+  let s = str.trim()
+    .replace(/\^/g, '**')
+    .replace(/\bsin\b/g, 'Math.sin')
+    .replace(/\bcos\b/g, 'Math.cos')
+    .replace(/\btan\b/g, 'Math.tan')
+    .replace(/\bexp\b/g, 'Math.exp')
+    .replace(/\blog\b/g, 'Math.log')
+    .replace(/\bsqrt\b/g, 'Math.sqrt')
+    .replace(/\babs\b/g, 'Math.abs')
+    .replace(/\bpi\b/gi, 'Math.PI')
+    .replace(/(?<![a-zA-Z_])e(?![a-zA-Z_])/g, 'Math.E');
+  return new Function('x', '"use strict"; return (' + s + ');');
+}
+
+function evalFn(str, x) {
+  try { const v = parseExpr(str)(x); return isFinite(v) ? v : NaN; }
+  catch(e) { return NaN; }
+}
+
+function validateFn(str) {
+  try { const v = parseExpr(str)(1); return true; }
+  catch(e) { return false; }
+}
+
+function integrate(f, a, b, steps = 1000) {
+  if (steps % 2 !== 0) steps++;
+  const dx = (b - a) / steps;
+  let s = f(a) + f(b);
+  for (let i = 1; i < steps; i++) {
+    s += f(a + i * dx) * (i % 2 === 0 ? 2 : 4);
+  }
+  return s * dx / 3;
+}
+
+function riemannSum(f, a, b, n, method) {
+  const dx = (b - a) / n;
+  let s = 0;
+  if (method === 'trap') {
+    for (let i = 0; i < n; i++) {
+      const x0 = a + i * dx, x1 = a + (i + 1) * dx;
+      const v0 = f(x0), v1 = f(x1);
+      if (isFinite(v0) && isFinite(v1)) s += 0.5 * (v0 + v1) * dx;
+    }
+  } else {
+    for (let i = 0; i < n; i++) {
+      const x = method === 'left' ? a + i * dx : method === 'right' ? a + (i + 1) * dx : a + (i + 0.5) * dx;
+      const v = f(x);
+      if (isFinite(v)) s += v * dx;
+    }
+  }
+  return s;
+}
+
+function draw() {
+  const errEl = document.getElementById('fn-error');
+  if (!validateFn(fnStr)) {
+    errEl.textContent = 'Invalid expression — try sin(x), x^2, etc.';
+    return;
+  }
+  errEl.textContent = '';
+  if (a >= b) { errEl.textContent = 'a must be less than b'; return; }
+
+  const f = x => evalFn(fnStr, x);
+  const dx = (b - a) / n;
+  const curveN = 400;
+  const step = (b - a) / curveN;
+
+  const cxs = Array.from({length: curveN + 1}, (_, i) => +(a + i * step).toFixed(6));
+  const cys = cxs.map(x => f(x));
+
+  const rects = [];
+  for (let i = 0; i < n; i++) {
+    if (method === 'trap') {
+      const x0 = a + i * dx, x1 = a + (i + 1) * dx;
+      rects.push({ x0, x1, h0: f(x0), h1: f(x1), trap: true });
+    } else {
+      const xs = method === 'left' ? a + i * dx : method === 'right' ? a + (i + 1) * dx : a + (i + 0.5) * dx;
+      const h = f(xs);
+      rects.push({ x0: a + i * dx, x1: a + (i + 1) * dx, h: isFinite(h) ? h : 0, trap: false });
+    }
+  }
+
+  const yFinite = cys.filter(isFinite);
+  let yMin = Math.min(...yFinite);
+  let yMax = Math.max(...yFinite);
+  const pad = (yMax - yMin) * 0.18 || 1;
+  yMin -= pad; yMax += pad;
+
+  const rs = riemannSum(f, a, b, n, method);
+  const exact = integrate(f, a, b);
+  const errPct = exact !== 0 ? Math.min(100, Math.abs((rs - exact) / exact) * 100) : 0;
+
+  document.getElementById('stat-riemann-label').textContent = method === 'trap' ? 'Trapezoid rule' : 'Riemann sum';
+  document.getElementById('stat-riemann').textContent = rs.toFixed(5);
+  document.getElementById('stat-exact').textContent = exact.toFixed(5);
+  document.getElementById('err-fill').style.width = errPct.toFixed(2) + '%';
+  document.getElementById('err-pct').textContent = errPct.toFixed(2) + '%';
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  const rectPlugin = {
+    id: 'rects',
+    beforeDatasetsDraw(chart) {
+      const { ctx, scales: { x, y } } = chart;
+      ctx.save();
+      rects.forEach(r => {
+        const x0px = x.getPixelForValue(r.x0);
+        const x1px = x.getPixelForValue(r.x1);
+        const y0base = y.getPixelForValue(0);
+        ctx.fillStyle = 'rgba(98,85,224,0.18)';
+        ctx.strokeStyle = 'rgba(98,85,224,0.65)';
+        ctx.lineWidth = 1;
+        if (r.trap) {
+          const y0top = y.getPixelForValue(isFinite(r.h0) ? r.h0 : 0);
+          const y1top = y.getPixelForValue(isFinite(r.h1) ? r.h1 : 0);
+          ctx.beginPath();
+          ctx.moveTo(x0px, y0base);
+          ctx.lineTo(x0px, y0top);
+          ctx.lineTo(x1px, y1top);
+          ctx.lineTo(x1px, y0base);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          const y1px = y.getPixelForValue(r.h);
+          const top = Math.min(y0base, y1px);
+          const bot = Math.max(y0base, y1px);
+          ctx.fillRect(x0px, top, x1px - x0px, bot - top);
+          ctx.strokeRect(x0px, top, x1px - x0px, bot - top);
+        }
+      });
+      ctx.restore();
+    }
+  };
+
+  chart = new Chart(document.getElementById('rs-canvas'), {
+    type: 'line',
+    plugins: [rectPlugin],
+    data: {
+      labels: cxs,
+      datasets: [{
+        data: cys,
+        borderColor: '#3ecfb2',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#ffffff',
+          borderColor: 'rgba(0,0,0,0.1)',
+          borderWidth: 1,
+          titleColor: '#6255e0',
+          bodyColor: '#1a1a2e',
+          titleFont: { family: 'DM Mono', size: 11 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+          callbacks: {
+            title: items => 'x = ' + parseFloat(items[0].label).toFixed(3),
+            label: item => 'f(x) = ' + parseFloat(item.raw).toFixed(4)
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear', min: a, max: b,
+          grid: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 },
+          ticks: { color: '#5e5e78', maxTicksLimit: 9, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(1) },
+          border: { color: 'rgba(0,0,0,0.15)' }
+        },
+        y: {
+          min: yMin, max: yMax,
+          grid: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 },
+          ticks: { color: '#5e5e78', maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(2) },
+          border: { color: 'rgba(0,0,0,0.15)' }
+        }
+      }
+    }
+  });
+}
+
+function schedule() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(draw);
+}
+
+document.getElementById('fn-input').addEventListener('input', e => { fnStr = e.target.value; schedule(); });
+
+function setA(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return;
+  a = v;
+  schedule();
+}
+
+function setB(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return;
+  b = v;
+  schedule();
+}
+
+document.getElementById('a-text').addEventListener('change', e => setA(e.target.value));
+document.getElementById('a-text').addEventListener('keydown', e => { if (e.key === 'Enter') setA(e.target.value); });
+document.getElementById('b-text').addEventListener('change', e => setB(e.target.value));
+document.getElementById('b-text').addEventListener('keydown', e => { if (e.key === 'Enter') setB(e.target.value); });
+
+document.getElementById('n-slider').addEventListener('input', e => {
+  n = parseInt(e.target.value);
+  document.getElementById('n-display').textContent = n;
+  document.getElementById('n-text').value = n;
+  schedule();
+});
+
+function setN(val) {
+  let v = Math.round(parseFloat(val));
+  if (isNaN(v)) return;
+  v = Math.max(1, Math.min(100, v));
+  n = v;
+  document.getElementById('n-display').textContent = n;
+  document.getElementById('n-slider').value = n;
+  document.getElementById('n-text').value = n;
+  schedule();
+}
+
+document.getElementById('n-text').addEventListener('change', e => setN(e.target.value));
+document.getElementById('n-text').addEventListener('keydown', e => { if (e.key === 'Enter') setN(e.target.value); });
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    method = btn.dataset.m;
+    schedule();
+  });
+});
+
+draw();
+</script>
+</body>
+</html>
