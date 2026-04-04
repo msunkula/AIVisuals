@@ -10,17 +10,17 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f4f4f8;
+    --bg: #f3f4f6;
     --surface: #ffffff;
-    --surface2: #eeeef5;
-    --border: rgba(0,0,0,0.08);
-    --border2: rgba(0,0,0,0.28);
-    --text: #1a1a2e;
-    --muted: #5e5e78;
-    --accent: #6255e0;
-    --accent2: #0d7a6a;
-    --accent-glow: rgba(98,85,224,0.15);
-    --danger: #e0455a;
+    --surface2: #e9ebf0;
+    --border: rgba(30,41,59,0.10);
+    --border2: rgba(30,41,59,0.28);
+    --text: #0f172a;         /* slate-900: 17.4:1 on white */
+    --muted: #475569;        /* slate-600: 5.9:1 on white - AA */
+    --accent: #1d4ed8;       /* blue-700: 5.4:1 on white - AA */
+    --accent2: #b45309;      /* amber-700: 5.5:1 on white - AA */
+    --accent-glow: rgba(29,78,216,0.12);
+    --danger: #b91c1c;       /* red-700: 5.9:1 on white - AA */
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'DM Sans', sans-serif;
     --font-mono: 'DM Mono', monospace;
@@ -43,8 +43,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(98,85,224,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(98,85,224,0.05) 1px, transparent 1px);
+      linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
     z-index: 0;
@@ -85,7 +85,7 @@
     font-size: 11px;
     color: var(--accent);
     background: var(--accent-glow);
-    border: 1px solid rgba(124,108,252,0.3);
+    border: 1px solid rgba(29,78,216,0.35);
     padding: 4px 10px;
     border-radius: 20px;
     letter-spacing: 0.05em;
@@ -458,11 +458,11 @@
         <span class="chart-title">Graph — f(x) with rectangles</span>
         <div class="legend">
           <div class="legend-item">
-            <div class="legend-dot" style="background:#3ecfb2"></div>
+            <div class="legend-dot" style="background:#0d9488"></div>
             f(x)
           </div>
           <div class="legend-item">
-            <div class="legend-dot" style="background:rgba(98,85,224,0.45)"></div>
+            <div class="legend-dot" style="background:rgba(180,83,9,0.55)"></div>
             rectangles
           </div>
         </div>
@@ -605,8 +605,8 @@ function draw() {
         const x0px = x.getPixelForValue(r.x0);
         const x1px = x.getPixelForValue(r.x1);
         const y0base = y.getPixelForValue(0);
-        ctx.fillStyle = 'rgba(98,85,224,0.18)';
-        ctx.strokeStyle = 'rgba(98,85,224,0.65)';
+        ctx.fillStyle = 'rgba(180,83,9,0.14)';
+        ctx.strokeStyle = 'rgba(180,83,9,0.60)';
         ctx.lineWidth = 1;
         if (r.trap) {
           const y0top = y.getPixelForValue(isFinite(r.h0) ? r.h0 : 0);
@@ -638,7 +638,7 @@ function draw() {
       labels: cxs,
       datasets: [{
         data: cys,
-        borderColor: '#3ecfb2',
+        borderColor: '#0d9488',
         borderWidth: 2.5,
         pointRadius: 0,
         tension: 0,
@@ -655,8 +655,8 @@ function draw() {
           backgroundColor: '#ffffff',
           borderColor: 'rgba(0,0,0,0.1)',
           borderWidth: 1,
-          titleColor: '#6255e0',
-          bodyColor: '#1a1a2e',
+          titleColor: '#1d4ed8',
+          bodyColor: '#0f172a',
           titleFont: { family: 'DM Mono', size: 11 },
           bodyFont: { family: 'DM Mono', size: 11 },
           callbacks: {
@@ -669,13 +669,13 @@ function draw() {
         x: {
           type: 'linear', min: a, max: b,
           grid: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 },
-          ticks: { color: '#5e5e78', maxTicksLimit: 9, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(1) },
+          ticks: { color: '#475569', maxTicksLimit: 9, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(1) },
           border: { color: 'rgba(0,0,0,0.15)' }
         },
         y: {
           min: yMin, max: yMax,
           grid: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 },
-          ticks: { color: '#5e5e78', maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(2) },
+          ticks: { color: '#475569', maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 }, callback: v => (+v).toFixed(2) },
           border: { color: 'rgba(0,0,0,0.15)' }
         }
       }
