@@ -483,7 +483,21 @@ let raf = null;
 
 function parseExpr(str) {
   let s = str.trim()
+    // Normalize constants to placeholders before implicit-mult rewrites
+    .replace(/\bpi\b/gi, 'PI')
+    .replace(/(?<![a-zA-Z_])e(?![a-zA-Z_])/g, 'E')
+    // Implicit multiplication rules (applied before named-function replacement)
+    .replace(/(\d)(x\b)/g, '$1*$2')           // 2x  -> 2*x
+    .replace(/(\d)([a-df-wyzA-DF-WYZ])/g, '$1*$2') // 2s(in)... -> handled via named fns below
+    .replace(/(\d)\(/g, '$1*(')              // 2(  -> 2*(
+    .replace(/\)\(/g, ')*(')                 // )( -> )*(
+    .replace(/\)(x\b)/g, ')*$1')             // )x  -> )*x
+    .replace(/\)(\d)/g, ')*$1')              // )2  -> )*2
+    .replace(/(x)\(/g, '$1*(')               // x(  -> x*(
+    .replace(/(x)(x)/g, '$1*$2')             // xx  -> x*x
+    // Exponentiation
     .replace(/\^/g, '**')
+    // Named functions and constants
     .replace(/\bsin\b/g, 'Math.sin')
     .replace(/\bcos\b/g, 'Math.cos')
     .replace(/\btan\b/g, 'Math.tan')
@@ -491,8 +505,8 @@ function parseExpr(str) {
     .replace(/\blog\b/g, 'Math.log')
     .replace(/\bsqrt\b/g, 'Math.sqrt')
     .replace(/\babs\b/g, 'Math.abs')
-    .replace(/\bpi\b/gi, 'Math.PI')
-    .replace(/(?<![a-zA-Z_])e(?![a-zA-Z_])/g, 'Math.E');
+    .replace(/\bPI\b/g, 'Math.PI')
+    .replace(/\bE\b/g, 'Math.E');
   return new Function('x', '"use strict"; return (' + s + ');');
 }
 
