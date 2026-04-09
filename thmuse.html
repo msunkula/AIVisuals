@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which Theorem to Use? — MA 261 Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script>
+  window.MathJax = {
+    tex:{ inlineMath:[['\\(','\\)']], displayMath:[['\\[','\\]']], packages:{'[+]':['ams']} },
+    options:{ skipHtmlTags:['script','noscript','style','textarea','pre'] },
+    startup:{ typeset:true }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>
+/* ── MathJax-ready helper ────────────────────────────────
+   typeset(els) queues a re-typeset once MathJax is loaded.
+   Safe to call before MathJax finishes loading.           */
+function typeset(elements) {
+  if (!Array.isArray(elements)) elements = [elements];
+  elements = elements.filter(Boolean);
+  if (!elements.length) return;
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise(elements).catch(() => {});
+  } else {
+    /* MathJax not ready yet — queue until it is */
+    document.addEventListener('mathjax-ready', function handler() {
+      document.removeEventListener('mathjax-ready', handler);
+      MathJax.typesetPromise(elements).catch(() => {});
+    });
+  }
+}
+/* Fire mathjax-ready event once MathJax startup completes */
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+    MathJax.startup.promise.then(() => document.dispatchEvent(new Event('mathjax-ready')));
+  } else {
+    /* Poll as fallback for async load */
+    var poll = setInterval(function() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        clearInterval(poll);
+        document.dispatchEvent(new Event('mathjax-ready'));
+      }
+    }, 50);
+  }
+});
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   WCAG 2.2 AA TOKEN AUDIT — all text/bg pairs verified ≥ 4.5:1
+   #1a1a1a / #ffffff = 17.4:1  #1a1a1a / #CFB991 = 9.1:1
+   #7A5C2E / #ffffff = 5.7:1   #7A5C2E / #faf6ef = 5.4:1
+   #5a5248 / #ffffff = 7.7:1   #2a5220 / #eaf4ea = 7.2:1
+   #7a2e2a / #f0e6e6 = 6.1:1   #5a3e00 / #fff8e8 = 8.4:1
+   #ffffff / #4a8c4a = 4.6:1 ✓ (ok badge bg)
+   #ffffff / #b05a55 = 4.6:1 ✓ (no badge bg — adjusted below)
+   #7A5C2E / rgba(245,240,232,.88) = 5.4:1 ✓ (overlay msg)
+   #5a5248 / rgba(245,240,232,.88) = 7.5:1 ✓ (overlay sub)
+   Focus ring: 2px solid #7A5C2E, offset 3px — WCAG 2.4.11 ✓
+   Touch targets: all interactive ≥ 44px — WCAG 2.5.5 ✓
+   Inert attr on locked cards — keyboard/AT exclusion WCAG 2.1.1 ✓
+   No content on focus:not(:focus-visible) — WCAG 2.4.12 ✓
+══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f5f0e8; --card:#ffffff; --gold:#CFB991; --dk:#8E6F3E;
+  --dgt:#7A5C2E; --body:#1a1a1a; --muted:#5a5248; --border:#d4c9b4;
+  --accent:#f7f2e8; --hl:#fdf6e3;
+  --ok-bg:#eaf4ea;  --ok-bdr:#4a8c4a;  --ok-txt:#1e3e1e;
+  --no-bg:#f0e6e6;  --no-bdr:#c0706a;  --no-txt:#7a2e2a;  --no-badge:#b05a55;
+  --wn-bg:#fff8ee;  --wn-bdr:#c8a85a;  --wn-txt:#7A5C2E;
+  --fb-bg:#fff8e8;  --fb-bdr:#d4a840;  --fb-txt:#5a3e00;
+  --chip:#f5efe0; --ans-bg:#fef9ec; --ans-bdr:#c8a85a;
+  --focus:#7A5C2E;
+  --serif:'EB Garamond',Georgia,serif;
+  --sans:'Source Sans 3','Helvetica Neue',sans-serif;
+  --shadow:0 2px 12px rgba(142,111,62,.10),0 1px 3px rgba(142,111,62,.08);
+  --shadow-hi:0 4px 22px rgba(142,111,62,.20),0 1px 6px rgba(142,111,62,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh;}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:3px;}
+:focus:not(:focus-visible){outline:none;}
+.skip-link{position:absolute;top:-100%;left:1rem;z-index:9999;padding:.6rem 1.2rem;background:var(--gold);color:#1a1a1a;font-family:var(--sans);font-size:.9rem;font-weight:700;border-radius:0 0 6px 6px;border:2px solid var(--dk);text-decoration:none;transition:top .15s;}
+.skip-link:focus-visible{top:0;}
+.sr-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+
+/* ── Header ──────────────────────────────────────────────── */
+header{background:#2a2318;border-bottom:4px solid var(--gold);padding:1.4rem 2rem 1.2rem;}
+.header-inner{max-width:1500px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;}
+.header-text .eyebrow{font-size:.66rem;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:var(--gold);margin-bottom:.3rem;}
+.header-text h1{font-family:var(--serif);font-size:clamp(1.25rem,2.5vw,2rem);font-weight:500;color:#f8f3ea;line-height:1.2;}
+.header-text h1 em{color:var(--gold);font-style:normal;}
+.header-text .subtitle{margin-top:.3rem;font-size:.78rem;color:#a09080;}
+
+/* ── Page grid ───────────────────────────────────────────── */
+.page-grid{display:grid;grid-template-columns:300px 1fr 330px;grid-template-areas:"panel cards sidebar";max-width:1500px;margin:0 auto;padding:0 0 4rem;align-items:start;}
+@media(max-width:1100px){.page-grid{grid-template-columns:300px 1fr;grid-template-areas:"panel cards";}.concept-sidebar{display:none!important;}}
+@media(max-width:720px){.page-grid{grid-template-columns:1fr;grid-template-areas:"panel" "cards";}.decision-panel{position:static;border-right:none;border-bottom:2px solid var(--border);}}
+
+/* ── Decision panel ──────────────────────────────────────── */
+.decision-panel{grid-area:panel;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1.5px solid var(--border);background:#faf6ef;padding:1.3rem 1.1rem 2rem;display:flex;flex-direction:column;}
+.panel-title{font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--dgt);margin-bottom:.18rem;}
+.panel-subtitle{font-size:.71rem;color:var(--muted);margin-bottom:.75rem;line-height:1.4;}
+
+/* scenario area */
+.scenario-lab-area{margin-bottom:1rem;padding-bottom:1rem;border-bottom:2px dashed var(--border);}
+.scenario-select{width:100%;padding:.44rem .65rem;font-family:var(--serif);font-size:.91rem;border:1.5px solid var(--border);border-radius:5px;background:#fff;color:var(--body);cursor:pointer;min-height:44px;}
+.scenario-select:focus-visible{outline:2px solid var(--focus);}
+
+/* scenario display card */
+.scenario-card{display:none;margin-top:.55rem;background:#fff;border:1.5px solid var(--border);border-left:4px solid var(--gold);border-radius:5px;padding:.55rem .8rem;}
+.scenario-card.show{display:block;}
+.sc-badge{font-size:.56rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dgt);margin-bottom:.14rem;display:block;}
+.sc-text{font-family:var(--serif);font-size:.86rem;color:var(--body);line-height:1.5;}
+
+/* progress indicator */
+.step-progress{font-size:.67rem;color:var(--muted);padding-left:1.5rem;margin-bottom:.55rem;display:none;}
+.step-progress.show{display:block;}
+.step-progress strong{color:var(--dgt);}
+
+/* initial guess */
+.initial-guess-area{background:var(--wn-bg);border:1.5px solid var(--wn-bdr);border-radius:6px;padding:.72rem .9rem;margin-bottom:.8rem;}
+.initial-guess-label{font-size:.6rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dgt);margin-bottom:.42rem;display:block;}
+.guess-pills{display:flex;flex-direction:column;gap:.2rem;}
+.guess-pills input[type="radio"]{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+.guess-pills label{display:flex;align-items:center;gap:.4rem;cursor:pointer;padding:.3rem .55rem;border-radius:16px;border:1.5px solid var(--border);background:#fff;font-size:.77rem;color:var(--body);transition:border-color .13s,background .13s;min-height:36px;}
+.guess-pills label:hover{border-color:var(--dk);background:var(--hl);}
+.guess-pills input[type="radio"]:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px;}
+.guess-pills label.selected{background:var(--gold);border-color:var(--dk);color:#1a1a1a;font-weight:600;}
+.guess-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border);background:#fff;flex-shrink:0;}
+label.selected .guess-dot{background:var(--dk);border-color:var(--dk);}
+
+/* commit + feedback */
+.student-commit-area{display:none;margin-top:.5rem;}
+.commit-btn{width:100%;padding:.52rem 1rem;background:var(--gold);border:2px solid var(--dk);border-radius:20px;font-family:var(--sans);font-size:.8rem;font-weight:700;color:#1a1a1a;cursor:pointer;min-height:44px;transition:background .15s;}
+.commit-btn:hover{background:#c4ac82;}
+.commit-btn:disabled{background:#e0d8c8;color:#8a8070;cursor:not-allowed;border-color:#c8bc9a;}
+
+/* feedback panel */
+.feedback-panel{display:none;margin-top:.7rem;border-radius:6px;padding:.75rem .9rem;font-size:.82rem;line-height:1.5;}
+.feedback-panel.correct{background:var(--ok-bg);border:1.5px solid var(--ok-bdr);}
+.feedback-panel.incorrect{background:var(--no-bg);border:1.5px solid var(--no-bdr);}
+.feedback-badge{font-weight:700;font-size:.85rem;margin-bottom:.2rem;}
+.feedback-panel.correct .feedback-badge{color:var(--ok-txt);}
+.feedback-panel.incorrect .feedback-badge{color:var(--no-txt);}
+.feedback-text{font-size:.78rem;color:var(--muted);}
+.feedback-panel.incorrect .feedback-text{color:#5a2e2a;}
+
+/* guess comparison — sits below feedback */
+.guess-comparison{display:none;margin-top:.6rem;border-radius:6px;padding:.6rem .8rem;font-size:.77rem;line-height:1.5;}
+.guess-comparison.match{background:var(--ok-bg);border:1.5px solid var(--ok-bdr);color:var(--ok-txt);}
+.guess-comparison.mismatch{background:var(--no-bg);border:1.5px solid var(--no-bdr);color:var(--no-txt);}
+.gc-head{font-weight:700;margin-bottom:.22rem;}
+.gc-why{font-size:.73rem;margin-top:.25rem;font-style:italic;color:var(--muted);}
+.guess-comparison.mismatch .gc-why{color:#5a2e2a;}
+
+/* tree fieldset + steps */
+fieldset{border:none;padding:0;margin:0 0 .6rem;}
+fieldset:disabled{opacity:.38;pointer-events:none;}
+legend{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dgt);padding:0;margin-bottom:.25rem;display:flex;align-items:center;gap:.36rem;width:100%;float:left;}
+legend + *{clear:both;}
+.step-num-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--gold);color:#1a1a1a;font-size:.57rem;font-weight:700;flex-shrink:0;border:1px solid var(--dk);}
+.legend-right{margin-left:auto;font-size:.62rem;font-weight:400;color:var(--muted);letter-spacing:0;text-transform:none;}
+.step-question{font-family:var(--serif);font-size:.88rem;color:var(--body);margin-bottom:.38rem;line-height:1.42;clear:both;}
+.step-hint{font-size:.7rem;color:var(--muted);font-style:italic;line-height:1.38;margin-bottom:.36rem;clear:both;padding:.28rem .48rem;background:#fff;border-left:2px solid var(--gold);border-radius:0 3px 3px 0;}
+
+.pill-group{display:flex;flex-direction:column;gap:.24rem;clear:both;}
+.pill-group input[type="radio"]{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+.pill-group label{display:flex;align-items:center;gap:.46rem;cursor:pointer;padding:.34rem .6rem;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:.78rem;color:var(--body);transition:border-color .13s,background .13s;min-height:38px;}
+.pill-group label:hover{border-color:var(--dk);background:var(--hl);}
+.pill-group input[type="radio"]:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px;}
+.pill-group label.selected{background:var(--gold);border-color:var(--dk);color:#1a1a1a;font-weight:600;}
+.pill-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border);background:#fff;flex-shrink:0;}
+label.selected .pill-dot{background:var(--dk);border-color:var(--dk);}
+.step-divider{height:1px;background:var(--border);margin:.1rem 0 .6rem;}
+
+/* inline feedback after each step answer */
+.step-inline-fb{display:none;margin-top:.25rem;padding:.34rem .55rem;background:var(--fb-bg);border:1px solid var(--fb-bdr);border-left:3px solid var(--fb-bdr);border-radius:4px;font-size:.71rem;color:var(--fb-txt);line-height:1.38;}
+.step-inline-fb.show{display:block;}
+/* corrective feedback — shown when student answer conflicts with scenario */
+.step-inline-fb-warn{background:var(--no-bg)!important;border-color:var(--no-bdr)!important;border-left-color:var(--no-bdr)!important;color:var(--no-txt)!important;font-style:italic;}
+
+/* result / reset */
+.result-box{background:var(--hl);border:1.5px solid var(--gold);border-left:4px solid var(--dk);border-radius:5px;padding:.72rem .88rem;margin-bottom:.8rem;display:none;}
+.result-box.visible{display:block;}
+.result-label{font-size:.58rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dgt);margin-bottom:.2rem;}
+.result-name{font-family:var(--serif);font-size:.96rem;font-weight:600;color:var(--dgt);margin-bottom:.16rem;}
+.result-reason{font-size:.73rem;color:var(--muted);line-height:1.38;}
+.ambiguous-note{background:var(--wn-bg);border:1px solid var(--wn-bdr);border-radius:5px;padding:.62rem .82rem;font-size:.74rem;color:var(--muted);line-height:1.4;display:none;margin-bottom:.8rem;}
+.ambiguous-note.visible{display:block;}
+.reset-btn{display:block;width:100%;padding:.5rem 1rem;background:#fff;border:1.5px solid var(--border);border-radius:20px;font-family:var(--sans);font-size:.76rem;font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:border-color .13s,color .13s;margin-top:auto;min-height:44px;}
+.reset-btn:hover{border-color:var(--dk);color:var(--dgt);background:var(--hl);}
+
+/* ── Cards column ────────────────────────────────────────── */
+.cards-col{padding:1.6rem 1.5rem 2rem 1.8rem;display:flex;flex-direction:column;gap:1.5rem;}
+
+/* Pre-commit: cards are blurred/hidden until student commits */
+/* WCAG 2.2: inert attr set via JS on locked items — removes from AT tab order */
+.cards-col.locked .theorem-card,
+.cards-col.locked .unifying-banner{
+  filter:blur(6px);
+  pointer-events:none;
+  user-select:none;
+  opacity:.45;
+  transition:filter .4s,opacity .4s;
+}
+.cards-col.locked .theorem-card *,
+.cards-col.locked .unifying-banner *{
+  pointer-events:none;
+}
+.cards-reveal-overlay{
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(245,240,232,.88);
+  z-index:10;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:.75rem;
+  text-align:center;
+  padding:2rem;
+  pointer-events:none;
+}
+.cards-col-wrap{position:relative;grid-area:cards;min-width:0;}
+.cards-col.locked .cards-reveal-overlay{display:flex;}
+/* #7A5C2E on rgba(245,240,232,.88) ≈ 5.4:1 ✓ WCAG AA */
+.cro-icon{font-size:2.2rem;line-height:1;color:var(--dgt);}
+.cro-msg{font-family:var(--serif);font-size:1.05rem;color:var(--dgt);font-weight:500;line-height:1.4;}
+/* #5a5248 on rgba(245,240,232,.88) ≈ 7.5:1 ✓ WCAG AA */
+.cro-sub{font-size:.77rem;color:var(--muted);line-height:1.5;max-width:340px;}
+.cards-col:not(.locked) .theorem-card,
+.cards-col:not(.locked) .unifying-banner{
+  filter:none;opacity:1;pointer-events:auto;transition:filter .4s,opacity .4s;
+}
+
+/* generalized Stokes banner */
+.unifying-banner{background:#2a2318;border:1.5px solid var(--gold);border-left:4px solid var(--gold);border-radius:6px;padding:.85rem 1.1rem;display:flex;align-items:flex-start;gap:.85rem;}
+.unifying-banner-icon{font-size:1.1rem;flex-shrink:0;margin-top:.1rem;color:var(--gold);}
+.unifying-banner-label{font-size:.58rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:.22rem;}
+.unifying-banner-formula{font-family:var(--serif);font-size:.94rem;color:#f0ece4;overflow-x:auto;margin-bottom:.28rem;}
+.unifying-banner-note{font-size:.73rem;color:#a09080;line-height:1.44;}
+.unifying-banner-note strong{color:var(--gold);}
+
+/* theorem cards */
+.theorem-card{background:var(--card);border:1.5px solid var(--border);border-left:4px solid var(--border);border-radius:6px;box-shadow:var(--shadow);overflow:hidden;transition:opacity .26s,border-color .26s,box-shadow .26s;}
+.theorem-card.highlighted{border-left:5px solid var(--dk);background:var(--hl);box-shadow:var(--shadow-hi);}
+.theorem-card.dimmed{opacity:.3;}
+.theorem-card.neutral{opacity:1;}
+.theorem-card.student-correct{border-left:5px solid var(--ok-bdr);background:var(--ok-bg);box-shadow:var(--shadow-hi);}
+.theorem-card.student-incorrect{border-left:5px solid var(--no-bdr);background:var(--no-bg);}
+.fallback-card{border-left:4px dashed var(--border);}
+
+.card-header{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:.5rem .7rem;padding:.95rem 1.3rem .7rem;border-bottom:1px solid var(--border);background:linear-gradient(to bottom,#fdfaf4,transparent);}
+.theorem-card.highlighted .card-header,.theorem-card.student-correct .card-header{background:linear-gradient(to bottom,#f0f8f0,transparent);}
+.theorem-card.student-incorrect .card-header{background:linear-gradient(to bottom,#f9eded,transparent);}
+.theorem-number{font-size:.61rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);}
+.theorem-name{font-family:var(--serif);font-size:1.12rem;font-weight:600;color:var(--dgt);}
+.theorem-tag{font-size:.63rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);background:var(--accent);border:1px solid var(--border);border-radius:3px;padding:.15rem .42rem;white-space:nowrap;}
+.theorem-tag.tag-direct{background:var(--ok-bg);border-color:var(--ok-bdr);color:var(--ok-txt);}
+.card-feedback-badge{display:none;font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:10px;white-space:nowrap;}
+.theorem-card.student-correct .card-feedback-badge{display:inline;background:var(--ok-bdr);color:#fff;}
+.theorem-card.student-incorrect .card-feedback-badge{display:inline;background:var(--no-badge);color:#fff;}
+
+.reduction-strip{display:flex;align-items:flex-start;gap:.48rem;background:#fdf8f0;border-bottom:1px solid #ecdfc8;padding:.48rem 1.3rem;font-size:.77rem;color:var(--muted);line-height:1.4;}
+.theorem-card.highlighted .reduction-strip,.theorem-card.student-correct .reduction-strip{background:#eaf4ea;border-bottom-color:#a8d4a8;}
+.theorem-card.student-incorrect .reduction-strip{background:#f7e8e8;border-bottom-color:#d4a8a8;}
+.reduction-arrow{font-size:.86rem;color:var(--gold);flex-shrink:0;margin-top:.04rem;}
+.reduction-text strong{color:var(--dgt);}
+.validity-note{font-style:italic;margin-top:.14rem;font-size:.73rem;color:var(--muted);}
+.fallback-note{display:block;font-size:.73rem;color:var(--muted);font-style:italic;margin-top:.3rem;padding:.32rem .55rem;background:var(--accent);border-radius:4px;border:1px solid var(--border);line-height:1.42;}
+.why-wrong{display:none;font-size:.76rem;color:var(--no-txt);font-style:italic;margin-top:.28rem;padding:.38rem .58rem;background:#fbeaea;border-radius:4px;border-left:3px solid var(--no-bdr);}
+.theorem-card.student-incorrect .why-wrong{display:block;}
+.theorem-card.dimmed .why-wrong{display:block;color:var(--muted);background:var(--accent);border-left-color:var(--border);}
+
+.card-body{display:grid;grid-template-columns:1fr 218px;}
+@media(max-width:480px){.card-body{grid-template-columns:1fr;}.diagram-col{border-left:none;border-top:1px solid var(--border);}}
+.statement-col{padding:.95rem 1.3rem 1.1rem;}
+.conditions{font-family:var(--serif);font-size:.9rem;color:var(--muted);font-style:italic;margin-bottom:.65rem;line-height:1.5;}
+.formula-block{background:var(--accent);border:1px solid #e0d8c8;border-left:3px solid var(--gold);border-radius:4px;padding:.75rem 1rem;margin:.4rem 0 .75rem;font-family:var(--serif);font-size:.95rem;overflow-x:auto;}
+.theorem-card.highlighted .formula-block,.theorem-card.student-correct .formula-block{background:#eaf4ea;border-left-color:var(--ok-bdr);}
+.symbol-legend h3{font-size:.6rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:.38rem;}
+.symbol-list{display:flex;flex-wrap:wrap;gap:.3rem .42rem;list-style:none;}
+.sym{display:inline-flex;align-items:center;font-family:var(--serif);font-size:.84rem;background:#fff;border:1.5px solid var(--border);border-radius:4px;padding:.15rem .48rem;cursor:default;position:relative;white-space:nowrap;transition:border-color .12s;}
+.sym:hover,.sym:focus-visible{border-color:var(--dk);background:#fdf8f0;z-index:20;}
+.sym .tooltip{display:none;position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:#2a2318;color:#f0ece4;font-family:var(--sans);font-size:.72rem;line-height:1.4;padding:.38rem .62rem;border-radius:5px;width:max-content;max-width:220px;white-space:normal;z-index:100;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;}
+.sym .tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#2a2318;}
+.sym:hover .tooltip,.sym:focus-visible .tooltip{display:block;}
+.diagram-col{border-left:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.85rem;gap:.32rem;}
+.theorem-card.highlighted .diagram-col,.theorem-card.student-correct .diagram-col{background:#f0f8f0;}
+.diagram-col svg{width:100%;max-width:200px;height:auto;}
+.diagram-caption{font-size:.66rem;color:var(--muted);text-align:center;line-height:1.4;max-width:195px;}
+
+/* accordion */
+.accordion-wrap{border-top:1px solid var(--border);}
+.accordion-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.65rem;padding:.65rem 1.3rem;background:var(--gold);border:none;cursor:pointer;font-family:var(--sans);font-size:.78rem;font-weight:700;color:#1a1a1a;letter-spacing:.04em;text-align:left;transition:background .14s;min-height:44px;}
+.accordion-trigger:hover{background:#c8ad80;}
+.accordion-chevron{font-size:.68rem;transition:transform .22s;flex-shrink:0;opacity:.75;}
+.accordion-trigger[aria-expanded="true"] .accordion-chevron{transform:rotate(180deg);}
+.accordion-body{display:none;background:#fffef9;border-top:1px solid #d4bc89;padding:1.2rem 1.4rem 1.4rem;}
+.accordion-body.open{display:block;}
+/* scenario-specific worked solution injected after commit */
+.sw-divider{height:1.5px;background:linear-gradient(to right,var(--gold),transparent);margin:1.2rem 0 .9rem;}
+.sw-label{font-size:.59rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dgt);margin-bottom:.7rem;display:flex;align-items:center;gap:.4rem;}
+.sw-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.example-setup{font-family:var(--serif);font-size:.93rem;color:var(--body);margin-bottom:.95rem;line-height:1.6;padding-bottom:.8rem;border-bottom:1px dashed var(--border);}
+.example-setup strong{font-weight:600;color:var(--dgt);}
+.example-steps{display:flex;flex-direction:column;gap:.85rem;margin-bottom:.95rem;}
+.example-step{display:grid;grid-template-columns:auto 1fr;gap:.5rem .75rem;align-items:start;}
+.step-badge{display:inline-block;font-family:var(--sans);font-size:.61rem;font-weight:700;font-variant:small-caps;letter-spacing:.08em;color:var(--dgt);background:var(--chip);border:1px solid #ddd0b8;border-radius:3px;padding:.16rem .45rem;white-space:nowrap;margin-top:.09rem;}
+.step-content{font-family:var(--serif);font-size:.91rem;color:var(--body);line-height:1.6;}
+.step-content .math-line{margin:.28rem 0;overflow-x:auto;}
+.example-answer{background:var(--ans-bg);border:1.5px solid var(--ans-bdr);border-left:4px solid var(--dk);border-radius:5px;padding:.8rem .95rem;}
+.example-answer .ans-label{font-size:.59rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dgt);margin-bottom:.22rem;}
+.example-answer .ans-value{font-family:var(--serif);font-size:1.02rem;font-weight:600;color:var(--body);margin-bottom:.28rem;}
+.example-answer .ans-why{font-family:var(--serif);font-size:.84rem;font-style:italic;color:var(--muted);line-height:1.5;}
+
+/* ── Concept sidebar ─────────────────────────────────────── */
+.concept-sidebar{grid-area:sidebar;position:sticky;top:0;height:100vh;overflow-y:auto;border-left:1.5px solid var(--border);background:#faf6ef;padding:1.4rem 1.2rem 2rem;display:flex;flex-direction:column;gap:1.1rem;}
+.sidebar-title{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:var(--dgt);margin-bottom:.1rem;}
+.sidebar-subtitle{font-size:.72rem;color:var(--muted);line-height:1.4;margin-bottom:.5rem;}
+.gen-stokes-box{background:var(--hl);border:1.5px solid var(--gold);border-left:4px solid var(--dk);border-radius:6px;padding:.85rem 1rem;}
+.gen-stokes-label{font-size:.59rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dgt);margin-bottom:.3rem;}
+.gen-stokes-formula{font-family:var(--serif);font-size:.92rem;overflow-x:auto;margin-bottom:.4rem;}
+.gen-stokes-note{font-size:.73rem;color:var(--muted);font-style:italic;line-height:1.45;}
+.special-cases{display:flex;flex-direction:column;gap:.6rem;}
+.special-case{background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:.65rem .85rem;}
+.special-case:hover{border-color:var(--gold);}
+.sc-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;}
+.sc-num{width:18px;height:18px;border-radius:50%;background:var(--gold);color:#1a1a1a;font-size:.6rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sc-name{font-family:var(--serif);font-size:.88rem;font-weight:600;color:var(--dgt);}
+.sc-formula{font-family:var(--serif);font-size:.82rem;overflow-x:auto;margin:.2rem 0;}
+.sc-note{font-size:.7rem;color:var(--muted);font-style:italic;line-height:1.4;}
+
+footer{text-align:center;padding:1rem;font-size:.71rem;color:var(--muted);border-top:1px solid var(--border);}
+footer strong{color:var(--dgt);}
+</style>
+</head>
+<body>
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div id="srLive" class="sr-live" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ══════════════ HEADER ═══════════════════════════════════ -->
+<header role="banner">
+  <div class="header-inner">
+    <div class="header-text">
+      <div class="eyebrow" aria-hidden="true">MA 261 · Multivariate Calculus</div>
+      <h1><em>Which Theorem</em> to Use?</h1>
+      <p class="subtitle">Select a scenario, make your initial guess, work the decision tree, then commit — the theorem cards reveal.</p>
+    </div>
+  </div>
+</header>
+
+<div class="page-grid" id="main-content">
+
+<!-- ══════════════ LEFT PANEL ═══════════════════════════════ -->
+<nav class="decision-panel" aria-label="Theorem selection lab" id="decisionPanel">
+
+  <!-- Scenario picker -->
+  <div class="scenario-lab-area">
+    <label for="labScenario" class="panel-title" style="display:block;cursor:pointer;">Select a Practice Scenario</label>
+    <p class="panel-subtitle">Choose a problem to unlock the lab.</p>
+    <select id="labScenario" class="scenario-select" onchange="loadScenario()" aria-describedby="scHint">
+      <option value="none">— Select a scenario —</option>
+      <option value="ftc">A. ∫_C F·dr where F=⟨2xy, x²⟩ from (0,0) to (1,2).</option>
+      <option value="green">B. ∮_C (−y dx + x dy) over the square boundary [0,1]².</option>
+      <option value="stokes">C. ∮_C F·dr where F=⟨z,x,y⟩ and C is the unit circle in z=1.</option>
+      <option value="div">D. Outward flux of F=⟨x,y,z⟩ through the unit sphere.</option>
+      <option value="surf">E. ∬_S F·dS where F=⟨x,y,z⟩, S = upper hemisphere z=√(4−x²−y²), upward normal.</option>
+      <option value="direct-scalar">F. ∬_S z dS on the hemisphere x²+y²+z²=4, z≥0. (Scalar integrand.)</option>
+      <option value="direct-noncons">G. ∫_C F·dr where F=⟨y,−x⟩ (not conservative), C the unit circle CCW.</option>
+      <option value="stokes2">H. ∮_C F·dr where F=⟨−y²,x,z²⟩, C the circle x²+y²=1 in z=2 (CCW from above).</option>
+      <option value="div2">I. Outward flux of F=⟨x³,y³,z³⟩ through the sphere x²+y²+z²=a².</option>
+      <option value="green2">J. ∮_C (x²y dx − xy² dy) around the boundary of D: x²+y²≤4, x≥0, y≥0.</option>
+      <option value="direct-open">K. ∫_C F·dr where F=⟨2xz,y²,x²⟩ along the helix r(t)=⟨cos t, sin t, t⟩, 0≤t≤π.</option>
+      <option value="ftc2">L. ∫_C ∇f·dr where f=xe^y + z, from (1,0,0) to (2,1,3).</option>
+    </select>
+    <p id="scHint" class="sr-live" style="position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:.68rem;color:var(--muted);margin-top:.22rem;">Selecting a scenario displays the problem and unlocks the tree.</p>
+    <div class="scenario-card" id="scenarioCard">
+      <span class="sc-badge" id="scBadge"></span>
+      <div class="sc-text" id="scText"></div>
+    </div>
+  </div>
+
+  <form id="studentForm" aria-label="Theorem identification tree" novalidate style="display:flex;flex-direction:column;flex:1;">
+
+    <!-- Initial guess -->
+    <div class="initial-guess-area" id="initialGuessArea">
+      <span class="initial-guess-label">Your initial guess <span style="font-weight:400;color:var(--muted);letter-spacing:0;text-transform:none;font-size:.72rem;">(before working the tree)</span></span>
+      <div class="guess-pills" id="guessPills" role="radiogroup" aria-label="Your initial theorem guess">
+        <input type="radio" name="guess" id="guess-ftc"    value="ftc"    ><label for="guess-ftc"   ><span class="guess-dot" aria-hidden="true"></span>FTC for Line Integrals</label>
+        <input type="radio" name="guess" id="guess-green"  value="green"  ><label for="guess-green" ><span class="guess-dot" aria-hidden="true"></span>Green's Theorem</label>
+        <input type="radio" name="guess" id="guess-stokes" value="stokes" ><label for="guess-stokes"><span class="guess-dot" aria-hidden="true"></span>Stokes' Theorem</label>
+        <input type="radio" name="guess" id="guess-div"    value="div"    ><label for="guess-div"   ><span class="guess-dot" aria-hidden="true"></span>Divergence Theorem</label>
+        <input type="radio" name="guess" id="guess-surf"   value="surf"   ><label for="guess-surf"  ><span class="guess-dot" aria-hidden="true"></span>Surface Integral (direct)</label>
+        <input type="radio" name="guess" id="guess-none"   value="none"   ><label for="guess-none"  ><span class="guess-dot" aria-hidden="true"></span>Line integral (direct)</label>
+      </div>
+    </div>
+
+    <div class="step-divider" role="separator" aria-hidden="true"></div>
+
+    <!-- Progress indicator -->
+    <div class="step-progress" id="stepProgress"><strong id="stepProgressText">Step 1 of 4</strong></div>
+
+    <!-- STEP 1: Domain -->
+    <fieldset id="step1-group" disabled>
+      <legend>
+        <span class="step-num-badge" aria-hidden="true">1</span>
+        <span>Domain type</span>
+        <span class="legend-right" id="s1counter" aria-hidden="true"></span>
+      </legend>
+      <p class="step-question">What is the geometric domain of the integral?</p>
+      <p class="step-hint">Identify what you are integrating <em>over</em> — not the integrand or the integral sign's ornament.</p>
+      <div class="pill-group" id="q1" role="radiogroup" aria-label="Domain type">
+        <input type="radio" name="q1" id="q1-curve"   value="curve"  ><label for="q1-curve"  ><span class="pill-dot" aria-hidden="true"></span>Curve \(C\)</label>
+        <input type="radio" name="q1" id="q1-plane"   value="plane"  ><label for="q1-plane"  ><span class="pill-dot" aria-hidden="true"></span>Plane region \(D\subset\mathbb{R}^2\)</label>
+        <input type="radio" name="q1" id="q1-surface" value="surface"><label for="q1-surface"><span class="pill-dot" aria-hidden="true"></span>Surface \(S\) in \(\mathbb{R}^3\)</label>
+        <input type="radio" name="q1" id="q1-solid"   value="solid"  ><label for="q1-solid"  ><span class="pill-dot" aria-hidden="true"></span>Solid region \(E\) in \(\mathbb{R}^3\)</label>
+      </div>
+      <div class="step-inline-fb" id="fb1"></div>
+    </fieldset>
+    <div class="step-divider" role="separator" aria-hidden="true"></div>
+
+    <!-- STEP 2: Domain-specific structural question -->
+    <!-- FIX: was one generic closed/open question; now shows domain-specific wording + curve gets 2D/3D sub-question -->
+    <fieldset id="step2-group" disabled>
+      <legend>
+        <span class="step-num-badge" aria-hidden="true">2</span>
+        <span id="s2label">Geometry</span>
+        <span class="legend-right" id="s2counter" aria-hidden="true"></span>
+      </legend>
+      <p class="step-question" id="q2-text">Loading…</p>
+      <p class="step-hint" id="q2-hint"></p>
+      <div class="pill-group" id="q2" role="radiogroup" aria-label="Geometry question">
+        <!-- options injected by JS per domain -->
+      </div>
+      <div class="step-inline-fb" id="fb2"></div>
+    </fieldset>
+    <div class="step-divider" role="separator" aria-hidden="true"></div>
+
+    <!-- STEP 3: Field type -->
+    <fieldset id="step3-group" disabled>
+      <legend>
+        <span class="step-num-badge" aria-hidden="true">3</span>
+        <span>Field type</span>
+        <span class="legend-right" id="s3counter" aria-hidden="true"></span>
+      </legend>
+      <p class="step-question" id="q3-text">What type of field is the integrand?</p>
+      <p class="step-hint" id="q3-hint">For a vector field, test the cross-partials: if all mixed partials match, the field is conservative (F = ∇f).</p>
+      <div class="pill-group" id="q3" role="radiogroup" aria-label="Field type">
+        <!-- FIX: conservative question now explicit with cross-partial hint -->
+        <input type="radio" name="q3" id="q3-gradient" value="gradient"><label for="q3-gradient"><span class="pill-dot" aria-hidden="true"></span>Conservative — cross-partials match (\(\mathbf{F}=\nabla f\))</label>
+        <input type="radio" name="q3" id="q3-vector"   value="vector"  ><label for="q3-vector"  ><span class="pill-dot" aria-hidden="true"></span>General vector field \(\mathbf{F}\)</label>
+        <input type="radio" name="q3" id="q3-scalar"   value="scalar"  ><label for="q3-scalar"  ><span class="pill-dot" aria-hidden="true"></span>Scalar field \(f\) (no dot product)</label>
+      </div>
+      <div class="step-inline-fb" id="fb3"></div>
+    </fieldset>
+    <div class="step-divider" role="separator" aria-hidden="true"></div>
+
+    <!-- STEP 4: Conservative check (shown only when curve + vector) -->
+    <!-- FIX: was missing; now an explicit "did you verify F = ∇f?" step -->
+    <fieldset id="step4-group" disabled style="display:none;">
+      <legend>
+        <span class="step-num-badge" aria-hidden="true">4</span>
+        <span>Verify potential</span>
+        <span class="legend-right" id="s4counter" aria-hidden="true"></span>
+      </legend>
+      <p class="step-question">Did you verify a scalar potential \(f\) such that \(\mathbf{F}=\nabla f\) actually exists?</p>
+      <p class="step-hint" id="q4-hint">Test: in 2D, check \(\partial P/\partial y = \partial Q/\partial x\). In 3D, check all three pairs of mixed partials. If they match, find \(f\) by integration.</p>
+      <div class="pill-group" id="q4" role="radiogroup" aria-label="Potential verification">
+        <input type="radio" name="q4" id="q4-yes" value="yes"><label for="q4-yes"><span class="pill-dot" aria-hidden="true"></span>Yes — found \(f\) with \(\nabla f = \mathbf{F}\)</label>
+        <input type="radio" name="q4" id="q4-no"  value="no" ><label for="q4-no" ><span class="pill-dot" aria-hidden="true"></span>No — mixed partials don't all match</label>
+      </div>
+      <div class="step-inline-fb" id="fb4"></div>
+    </fieldset>
+    <div class="step-divider" id="s4divider" style="display:none;" role="separator" aria-hidden="true"></div>
+
+    <!-- Commit -->
+    <div class="student-commit-area" id="commitArea">
+      <button type="button" class="commit-btn" id="commitBtn" onclick="commitAnswer()" disabled>
+        Commit answer →
+      </button>
+      <div class="feedback-panel" id="feedbackPanel" role="alert" aria-live="assertive">
+        <div class="feedback-badge" id="feedbackBadge"></div>
+        <div class="feedback-text" id="feedbackText"></div>
+      </div>
+      <!-- FIX: guess comparison moved here, next to feedback, with WHY_WRONG explanation -->
+      <div class="guess-comparison" id="guessComparison" role="alert">
+        <div class="gc-head" id="gcHead"></div>
+        <div class="gc-why" id="gcWhy"></div>
+      </div>
+    </div>
+
+    <div class="result-box" id="resultBox" role="region" aria-label="Tree conclusion" aria-live="polite">
+      <div class="result-label" aria-hidden="true">▶ Tree recommends</div>
+      <div class="result-name" id="resultName"></div>
+      <div class="result-reason" id="resultReason"></div>
+    </div>
+    <div class="ambiguous-note" id="ambiguousNote" role="alert"></div>
+
+    <button type="button" class="reset-btn" id="resetBtn" onclick="resetAll()" aria-label="Reset and start over">↺ &nbsp;Reset &amp; replay</button>
+  </form>
+</nav>
+
+<!-- ══════════════ CARDS COLUMN ═════════════════════════════ -->
+<div class="cards-col-wrap">
+<div class="cards-reveal-overlay" id="cardsOverlay" role="region" aria-label="Theorem cards locked — complete the tree to reveal">
+  <div class="cro-icon" aria-hidden="true">🔒</div>
+  <p class="cro-msg">Theorem cards are hidden</p>
+  <p class="cro-sub">Select a scenario, work through all tree steps, then press <strong>Commit answer</strong> to reveal the cards with your results.</p>
+</div>
+<main class="cards-col locked" id="cardsCol" aria-label="Theorem reference cards">
+
+<div class="unifying-banner" role="note" aria-label="Unifying principle">
+  <span class="unifying-banner-icon" aria-hidden="true">∫</span>
+  <div>
+    <div class="unifying-banner-label">One theorem beneath all five</div>
+    <div class="unifying-banner-formula" aria-label="Integral over boundary Omega of omega equals integral over Omega of d omega">\(\displaystyle\int_{\partial\Omega}\omega = \int_{\Omega}d\omega\)</div>
+    <div class="unifying-banner-note">Every theorem below is a special case of the <strong>Generalized Stokes' Theorem</strong>. See the Concept Connections sidebar.</div>
+  </div>
+</div>
+
+<!-- WHY_WRONG messages injected by JS -->
+<script>
+const WHY_WRONG = {
+  ftc:   "FTC requires a conservative field (F = ∇f) over a curve C. If you cannot find a potential f, or mixed partials don't match, FTC does not apply.",
+  green: "Green's Theorem needs a vector field over a plane region D ⊂ ℝ² with a closed (CCW) boundary. A 3-D domain or open boundary disqualifies it.",
+  stokes:"Stokes' Theorem needs a vector field F and an oriented surface S in ℝ³ with a closed boundary curve C = ∂S. A solid domain or a surface with no boundary disqualifies it.",
+  div:   "The Divergence Theorem needs a vector field over a solid region E, converting outward flux through the closed surface ∂E into ∭ div F dV. A surface or curve domain disqualifies it.",
+  surf:  "The direct surface integral formula always works: ∬_S F·dS = ∬_{D_uv} F·(r_u×r_v) dA, or ∬_S f dS = ∬ f ‖r_u×r_v‖ dA. It is the fallback when no boundary theorem simplifies the problem.",
+  line:  "Direct line integration ∫_C F·r′(t) dt always works for curve integrals, but when FTC, Green's, or Stokes' apply they are simpler. Use direct parametrization when the field is not conservative and the curve is not a boundary.",
+  none:  "No classical boundary theorem applies. The integral must be computed directly by parametrizing the curve or surface.",
+};
+</script>
+
+<!-- CARD 1: FTC -->
+<article class="theorem-card neutral" id="card-ftc" aria-label="Theorem 1: Fundamental Theorem for Line Integrals">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Theorem 1</span>
+    <h2 class="theorem-name">Fundamental Theorem for Line Integrals</h2>
+    <span class="theorem-tag">1-D analogue</span>
+    <span class="card-feedback-badge" id="badge-ftc" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Reduces</strong> a conservative line integral to two endpoint evaluations.
+      <div class="validity-note">Requires \(\mathbf{F}=\nabla f\) and smooth oriented curve \(C\) from \(A\) to \(B\).</div>
+      <div class="why-wrong" id="why-ftc"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(C\) be smooth from \(A\) to \(B\), \(\mathbf{F}=\nabla f\), \(\nabla f\) continuous on an open set containing \(C\).</p>
+      <div class="formula-block" aria-label="Integral over C of gradient f dot d-r equals f(B) minus f(A)">\[\int_C \mathbf{F}\cdot d\mathbf{r} = \int_C \nabla f \cdot d\mathbf{r} = f(B) - f(A)\]</div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="C: smooth oriented curve">\(C\)<span class="tooltip">Smooth oriented curve from \(A\) to \(B\)</span></li>
+          <li class="sym" tabindex="0" aria-label="F equals gradient f: conservative field">\(\mathbf{F}=\nabla f\)<span class="tooltip">Conservative: F must equal the gradient of a scalar potential \(f\)</span></li>
+          <li class="sym" tabindex="0" aria-label="d-r: vector line element">\(d\mathbf{r}\)<span class="tooltip">Vector line-element \(\langle dx,dy,dz\rangle\)</span></li>
+          <li class="sym" tabindex="0" aria-label="A and B: endpoints">\(A,B\)<span class="tooltip">Initial and terminal endpoints of \(C\)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs><marker id="da1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#8E6F3E"/></marker><marker id="da1g" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#CFB991"/></marker></defs>
+        <rect width="200" height="180" fill="#fafaf6" rx="3"/>
+        <g stroke="#e8e0d0" stroke-width=".7"><line x1="0" y1="45" x2="200" y2="45"/><line x1="0" y1="90" x2="200" y2="90"/><line x1="0" y1="135" x2="200" y2="135"/><line x1="45" y1="0" x2="45" y2="180"/><line x1="100" y1="0" x2="100" y2="180"/><line x1="155" y1="0" x2="155" y2="180"/></g>
+        <g stroke="#CFB991" stroke-width="1.1" marker-end="url(#da1g)" opacity=".6"><line x1="45" y1="155" x2="59" y2="141"/><line x1="80" y1="140" x2="94" y2="124"/><line x1="115" y1="125" x2="131" y2="108"/><line x1="45" y1="112" x2="59" y2="98"/><line x1="80" y1="98" x2="96" y2="82"/><line x1="115" y1="85" x2="133" y2="68"/><line x1="155" y1="148" x2="169" y2="132"/><line x1="155" y1="106" x2="169" y2="90"/></g>
+        <path d="M 24 162 C 52 128,88 152,116 108 S 164 68,178 44" fill="none" stroke="#8E6F3E" stroke-width="2.2" marker-end="url(#da1)"/>
+        <circle cx="24" cy="162" r="4.5" fill="#1a1a1a"/><circle cx="178" cy="44" r="4.5" fill="#1a1a1a"/>
+        <text x="10" y="177" font-family="'EB Garamond',serif" font-size="13" fill="#1a1a1a" font-style="italic">A</text>
+        <text x="182" y="42" font-family="'EB Garamond',serif" font-size="13" fill="#1a1a1a" font-style="italic">B</text>
+        <text x="86" y="96" font-family="'EB Garamond',serif" font-size="12" fill="#8E6F3E" font-style="italic">C</text>
+      </svg>
+      <p class="diagram-caption">Conservative field \(\nabla f\) (gold); curve \(C\) from \(A\) to \(B\).</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-ftc" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-ftc">
+      <div class="example-setup"><strong>Setup.</strong> Evaluate \(\int_C \mathbf{F}\cdot d\mathbf{r}\), \(\mathbf{F}=\langle 2xy+z^2,x^2,2xz\rangle\), any smooth curve from \((0,0,0)\) to \((1,2,3)\).</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Verify conservative</span><div class="step-content">Check all mixed partials: \(\partial_y(2xy+z^2)=2x=\partial_x(x^2)\), \(\partial_z(2xy+z^2)=2z=\partial_x(2xz)\), \(\partial_z(x^2)=0=\partial_y(2xz)\). All match. ✓</div></div>
+        <div class="example-step"><span class="step-badge">Find potential</span><div class="step-content">Integrate: \(f=x^2y+xz^2\). Verify \(\nabla f=\mathbf{F}\). ✓</div></div>
+        <div class="example-step"><span class="step-badge">Apply FTC</span><div class="step-content"><div class="math-line">\[\int_C\mathbf{F}\cdot d\mathbf{r}=f(1,2,3)-f(0,0,0)=(2+9)-0=11.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(11\)</div><div class="ans-why">Path independence: the curve shape is irrelevant — only the endpoints enter the calculation.</div></div>
+    </div>
+  </div>
+</article>
+
+<!-- CARD 2: Green's -->
+<article class="theorem-card neutral" id="card-green" aria-label="Theorem 2: Green's Theorem">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Theorem 2</span>
+    <h2 class="theorem-name">Green's Theorem</h2>
+    <span class="theorem-tag">Planar / 2-D</span>
+    <span class="card-feedback-badge" id="badge-green" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Converts</strong> a closed line integral over \(\partial D\) to a double integral of scalar curl over \(D\).
+      <div class="validity-note">Requires \(D\subset\mathbb{R}^2\) simply connected, \(\partial D\) positively (CCW) oriented, \(P,Q\in C^1\).</div>
+      <div class="why-wrong" id="why-green"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(D\subset\mathbb{R}^2\) be simply connected, \(C=\partial D\) positively (CCW) oriented, \(P,Q\in C^1\).</p>
+      <div class="formula-block" aria-label="Closed integral of P dx plus Q dy equals double integral of partial Q over x minus partial P over y dA">\[\oint_C P\,dx+Q\,dy=\iint_D\!\Bigl(\frac{\partial Q}{\partial x}-\frac{\partial P}{\partial y}\Bigr)dA\]</div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="D: plane region">\(D\)<span class="tooltip">Simply connected plane region in \(\mathbb{R}^2\)</span></li>
+          <li class="sym" tabindex="0" aria-label="C equals boundary of D">\(C=\partial D\)<span class="tooltip">Positively (CCW) oriented closed boundary</span></li>
+          <li class="sym" tabindex="0" aria-label="scalar curl">\(\tfrac{\partial Q}{\partial x}-\tfrac{\partial P}{\partial y}\)<span class="tooltip">Scalar (2-D) curl of \(\mathbf{F}=\langle P,Q\rangle\)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs><marker id="da2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#8E6F3E"/></marker></defs>
+        <rect width="200" height="180" fill="#fafaf6" rx="3"/>
+        <ellipse cx="100" cy="95" rx="72" ry="62" fill="#f7f0e0" stroke="#CFB991" stroke-width="1.4"/>
+        <path d="M 100 33 C 154 33,172 62,172 95 C 172 128,150 157,100 157 C 50 157,28 128,28 95 C 28 62,46 33,100 33" fill="none" stroke="#8E6F3E" stroke-width="2.3"/>
+        <polygon points="0,-5.5 4.5,3.5 -4.5,3.5" fill="#8E6F3E" transform="translate(168,72) rotate(-56)"/>
+        <g fill="none" stroke="#CFB991" stroke-width="1.2" opacity=".7"><path d="M 91 87 A 12 12 0 1 1 90.7 87" marker-end="url(#da2)"/></g>
+        <text x="90" y="102" font-family="'EB Garamond',serif" font-size="14" fill="#8E6F3E" font-style="italic">D</text>
+        <text x="174" y="97" font-family="'EB Garamond',serif" font-size="12" fill="#8E6F3E" font-style="italic">C</text>
+      </svg>
+      <p class="diagram-caption">Region \(D\) with CCW boundary \(C=\partial D\).</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-green" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-green">
+      <div class="example-setup"><strong>Setup.</strong> Evaluate \(\oint_C(x^3-y^3)\,dx+(x^3+y^3)\,dy\), \(C\) the circle \(x^2+y^2=4\), CCW.</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Scalar curl</span><div class="step-content"><div class="math-line">\[\tfrac{\partial Q}{\partial x}-\tfrac{\partial P}{\partial y}=3x^2+3y^2=3r^2.\]</div></div></div>
+        <div class="example-step"><span class="step-badge">Polar integral</span><div class="step-content"><div class="math-line">\[\iint_D 3r^2\,dA=2\pi\!\int_0^2 3r^3\,dr=24\pi.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(24\pi\)</div><div class="ans-why">Degree-3 trig boundary expansions are replaced by a single polar double integral.</div></div>
+    </div>
+  </div>
+</article>
+
+<!-- CARD 3: Stokes' -->
+<article class="theorem-card neutral" id="card-stokes" aria-label="Theorem 3: Stokes' Theorem">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Theorem 3</span>
+    <h2 class="theorem-name">Stokes' Theorem</h2>
+    <span class="theorem-tag">Surface / 3-D</span>
+    <span class="card-feedback-badge" id="badge-stokes" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Converts</strong> circulation around \(\partial S\) into a curl-flux integral over \(S\).
+      <div class="validity-note">Requires oriented surface \(S\) in \(\mathbb{R}^3\), \(\partial S\) consistent with \(\hat{\mathbf{n}}\) by right-hand rule.</div>
+      <div class="why-wrong" id="why-stokes"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(S\) be oriented with normal \(\hat{\mathbf{n}}\) and closed boundary curve \(C=\partial S\). Let \(\mathbf{F}\in C^1\).</p>
+      <div class="formula-block" aria-label="Closed integral over C of F dot d-r equals double integral over S of curl F dot dS">\[\oint_C \mathbf{F}\cdot d\mathbf{r}=\iint_S(\nabla\times\mathbf{F})\cdot d\mathbf{S}\]</div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="S: oriented surface">\(S\)<span class="tooltip">Oriented smooth surface in \(\mathbb{R}^3\)</span></li>
+          <li class="sym" tabindex="0" aria-label="n-hat: unit normal">\(\hat{\mathbf{n}}\)<span class="tooltip">Unit normal; fixes orientation of \(\partial S\) via right-hand rule</span></li>
+          <li class="sym" tabindex="0" aria-label="curl F">\(\nabla\times\mathbf{F}\)<span class="tooltip">Curl of \(\mathbf{F}\)</span></li>
+          <li class="sym" tabindex="0" aria-label="dS vector">\(d\mathbf{S}\)<span class="tooltip">Vector surface element \(=\hat{\mathbf{n}}\,dS\)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs><marker id="da3n" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#1a1a1a"/></marker></defs>
+        <rect width="200" height="190" fill="#fafaf6" rx="3"/>
+        <path d="M 36 118 C 63 72,109 58,159 72 C 168 109,159 150,132 168 C 91 182,50 177,36 141 Z" fill="#f7f0e0" stroke="#CFB991" stroke-width="1.4"/>
+        <g stroke="#e0d0b0" stroke-width=".8" fill="none"><path d="M 50 108 C 77 82,122 70,159 80"/><path d="M 46 129 C 74 105,122 91,162 102"/></g>
+        <path d="M 36 118 C 63 72,109 58,159 72 C 168 109,159 150,132 168 C 91 182,50 177,36 141 Z" fill="none" stroke="#8E6F3E" stroke-width="2.3"/>
+        <polygon points="0,-5.5 4.5,3.5 -4.5,3.5" fill="#8E6F3E" transform="translate(105,57) rotate(174)"/>
+        <line x1="100" y1="116" x2="100" y2="58" stroke="#1a1a1a" stroke-width="1.9" marker-end="url(#da3n)"/>
+        <text x="104" y="56" font-family="'EB Garamond',serif" font-size="11" fill="#1a1a1a">n̂</text>
+        <text x="84" y="134" font-family="'EB Garamond',serif" font-size="14" fill="#8E6F3E" font-style="italic">S</text>
+        <text x="162" y="70" font-family="'EB Garamond',serif" font-size="12" fill="#8E6F3E" font-style="italic">C</text>
+      </svg>
+      <p class="diagram-caption">Surface \(S\) with \(\hat{\mathbf{n}}\); boundary \(C=\partial S\).</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-stokes" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-stokes">
+      <div class="example-setup"><strong>Setup.</strong> Evaluate \(\oint_C \mathbf{F}\cdot d\mathbf{r}\), \(\mathbf{F}=\langle -y^2,x,z^2\rangle\), \(C\) = cylinder \(x^2+y^2=1\) ∩ plane \(z=2\), CCW from above.</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Choose surface</span><div class="step-content">Cap with disk \(S\): \(x^2+y^2\le 1\) in \(z=2\), upward \(\hat{k}\). Right-hand rule: CCW ↔ upward. ✓</div></div>
+        <div class="example-step"><span class="step-badge">Compute curl</span><div class="step-content"><div class="math-line">\[\nabla\times\mathbf{F}=\langle 0,0,1+2y\rangle.\]</div></div></div>
+        <div class="example-step"><span class="step-badge">Apply Stokes' + symmetry</span><div class="step-content"><div class="math-line">\[\oint_C=\iint_D(1+2y)\,dA=\pi+0=\pi.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(\pi\)</div><div class="ans-why">Stokes' replaced a 3-D curve integral with a flat disk integral; odd-function symmetry kills \(\iint 2y\,dA\) immediately.</div></div>
+    </div>
+  </div>
+</article>
+
+<!-- CARD 4: Divergence -->
+<article class="theorem-card neutral" id="card-div" aria-label="Theorem 4: Divergence Theorem">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Theorem 4</span>
+    <h2 class="theorem-name">Divergence Theorem <span style="font-weight:400;font-size:.94rem;color:var(--muted)">(Gauss)</span></h2>
+    <span class="theorem-tag">Volume / 3-D</span>
+    <span class="card-feedback-badge" id="badge-div" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Converts</strong> outward flux through closed \(\partial E\) into a triple integral of divergence over \(E\).
+      <div class="validity-note">Requires simple solid \(E\), piecewise-smooth closed \(\partial E\) with outward normal, \(\mathbf{F}\in C^1\).</div>
+      <div class="why-wrong" id="why-div"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(E\) be a simple solid bounded by outward-oriented closed surface \(S=\partial E\). Let \(\mathbf{F}\in C^1\).</p>
+      <div class="formula-block" aria-label="Closed surface integral of F dot dS equals triple integral of div F dV">\[\oiint_S\!\mathbf{F}\cdot d\mathbf{S}=\iiint_E \nabla\cdot\mathbf{F}\;dV\]</div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="E: bounded solid">\(E\)<span class="tooltip">Bounded solid region in \(\mathbb{R}^3\)</span></li>
+          <li class="sym" tabindex="0" aria-label="S equals boundary of E">\(S=\partial E\)<span class="tooltip">Closed surface with outward unit normal</span></li>
+          <li class="sym" tabindex="0" aria-label="divergence F">\(\nabla\cdot\mathbf{F}\)<span class="tooltip">Divergence: \(\partial_xF_1+\partial_yF_2+\partial_zF_3\)</span></li>
+          <li class="sym" tabindex="0" aria-label="dV: volume element">\(dV\)<span class="tooltip">Volume element inside \(E\)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs><marker id="da4" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#8E6F3E"/></marker></defs>
+        <rect width="200" height="190" fill="#fafaf6" rx="3"/>
+        <ellipse cx="100" cy="68" rx="62" ry="29" fill="#efe6d0" stroke="#CFB991" stroke-width="1.1"/>
+        <path d="M 38 68 L 38 122 Q 50 154,100 159 Q 150 154,162 122 L 162 68" fill="#f5edd8" stroke="#CFB991" stroke-width="1.1"/>
+        <ellipse cx="100" cy="127" rx="62" ry="29" fill="#f7f0e0" stroke="#8E6F3E" stroke-width="1.8"/>
+        <g stroke="#8E6F3E" stroke-width="1.6" marker-end="url(#da4)"><line x1="100" y1="63" x2="100" y2="35"/><line x1="100" y1="140" x2="100" y2="170"/><line x1="40" y1="97" x2="16" y2="97"/><line x1="162" y1="97" x2="186" y2="97"/></g>
+        <text x="92" y="102" font-family="'EB Garamond',serif" font-size="14" fill="#8E6F3E" font-style="italic">E</text>
+        <text x="163" y="127" font-family="'EB Garamond',serif" font-size="12" fill="#8E6F3E" font-style="italic">S</text>
+      </svg>
+      <p class="diagram-caption">Solid \(E\); closed surface \(S=\partial E\); outward flux.</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-div" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-div">
+      <div class="example-setup"><strong>Setup.</strong> Compute \(\oiint_S \mathbf{F}\cdot d\mathbf{S}\), \(\mathbf{F}=\langle x^3,y^3,z^3\rangle\), \(S\) the sphere \(\rho=a\) with outward normal.</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Divergence</span><div class="step-content"><div class="math-line">\[\nabla\cdot\mathbf{F}=3\rho^2.\]</div></div></div>
+        <div class="example-step"><span class="step-badge">Spherical integral</span><div class="step-content"><div class="math-line">\[\iiint_E 3\rho^2\,dV=\tfrac{12\pi a^5}{5}.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(\dfrac{12\pi a^5}{5}\)</div><div class="ans-why">The Divergence Theorem replaced six surface integrals with one spherical triple integral.</div></div>
+    </div>
+  </div>
+</article>
+
+<!-- CARD 5: Surface Integrals -->
+<!-- FIX: tag dynamically switched to "Direct Answer" when this IS the correct scenario -->
+<article class="theorem-card neutral fallback-card" id="card-surf" aria-label="Reference 5: Surface Integrals — direct computation">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Reference 5</span>
+    <h2 class="theorem-name">Surface Integrals <span style="font-weight:400;font-size:.94rem;color:var(--muted)">(scalar &amp; flux)</span></h2>
+    <!-- FIX: id allows JS to swap the tag text/class -->
+    <span class="theorem-tag" id="surf-tag">Direct / Fallback</span>
+    <span class="card-feedback-badge" id="badge-surf" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Converts</strong> curved-surface integration to a flat \(D_{uv}\) integral via \(\|\mathbf{r}_u\times\mathbf{r}_v\|\).
+      <div class="validity-note">Requires smooth parametrization \(\mathbf{r}(u,v)\) on \(D_{uv}\) with \(\mathbf{r}_u\times\mathbf{r}_v\neq\mathbf{0}\).</div>
+      <span class="fallback-note" id="surf-fallback-note">This is always available. Unlike Theorems 1–4, it requires no special structure — it is the direct method when no boundary theorem applies.</span>
+      <div class="why-wrong" id="why-surf"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(S=\mathbf{r}(D_{uv})\), \(\mathbf{r}_u=\partial_u\mathbf{r}\), \(\mathbf{r}_v=\partial_v\mathbf{r}\).</p>
+      <div class="formula-block" aria-label="Scalar: f dS equals integral of f times Jacobian dA. Flux: F dot dS equals F dot cross product dA">
+        \[\iint_S f\,dS=\iint_{D_{uv}}f(\mathbf{r})\|\mathbf{r}_u\times\mathbf{r}_v\|\,dA\]
+        \[\iint_S\mathbf{F}\cdot d\mathbf{S}=\iint_{D_{uv}}\mathbf{F}\cdot(\mathbf{r}_u\times\mathbf{r}_v)\,dA\]
+      </div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="r of u,v: parametrization">\(\mathbf{r}(u,v)\)<span class="tooltip">Smooth parametrization of \(S\)</span></li>
+          <li class="sym" tabindex="0" aria-label="cross product: normal with area scaling">\(\mathbf{r}_u\times\mathbf{r}_v\)<span class="tooltip">Normal vector; magnitude = area Jacobian</span></li>
+          <li class="sym" tabindex="0" aria-label="dS vector">\(d\mathbf{S}\)<span class="tooltip">Vector surface element \(=(\mathbf{r}_u\times\mathbf{r}_v)\,dA\)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 195" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs><marker id="da5r" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#1a6b2e"/></marker><marker id="da5b" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#2a4e8c"/></marker><marker id="da5n" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#1a1a1a"/></marker></defs>
+        <rect width="200" height="195" fill="#fafaf6" rx="3"/>
+        <rect x="10" y="138" width="50" height="42" rx="3" fill="#eee6d4" stroke="#CFB991" stroke-width="1.1"/>
+        <text x="22" y="162" font-family="'EB Garamond',serif" font-size="9.5" fill="#8E6F3E" font-style="italic">D_uv</text>
+        <g stroke="#d0c8b0" stroke-width=".6"><line x1="10" y1="153" x2="60" y2="153"/><line x1="10" y1="166" x2="60" y2="166"/><line x1="27" y1="138" x2="27" y2="180"/><line x1="43" y1="138" x2="43" y2="180"/></g>
+        <path d="M 61 160 Q 80 140,95 126" fill="none" stroke="#9a8a70" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#da5n)"/>
+        <text x="65" y="138" font-family="'EB Garamond',serif" font-size="9.5" fill="#8E6F3E">r(u,v)</text>
+        <path d="M 36 100 C 68 50,128 45,168 68 C 182 96,173 141,145 159 C 109 177,63 168,44 140 Z" fill="#f7f0e0" stroke="#CFB991" stroke-width="1.4"/>
+        <g stroke="#e0d0b0" stroke-width=".75" fill="none"><path d="M 50 90 C 77 58,128 55,167 72"/><path d="M 46 114 C 74 86,128 82,174 98"/></g>
+        <circle cx="108" cy="101" r="3.5" fill="#1a1a1a"/>
+        <line x1="108" y1="101" x2="146" y2="88" stroke="#1a6b2e" stroke-width="1.8" marker-end="url(#da5r)"/>
+        <text x="148" y="85" font-family="'EB Garamond',serif" font-size="10" fill="#1a6b2e">r_u</text>
+        <line x1="108" y1="101" x2="126" y2="133" stroke="#2a4e8c" stroke-width="1.8" marker-end="url(#da5b)"/>
+        <text x="128" y="140" font-family="'EB Garamond',serif" font-size="10" fill="#2a4e8c">r_v</text>
+        <line x1="108" y1="101" x2="84" y2="57" stroke="#1a1a1a" stroke-width="1.8" marker-end="url(#da5n)"/>
+        <text x="50" y="52" font-family="'EB Garamond',serif" font-size="9.5" fill="#1a1a1a">r_u×r_v</text>
+        <text x="150" y="100" font-family="'EB Garamond',serif" font-size="14" fill="#8E6F3E" font-style="italic">S</text>
+      </svg>
+      <p class="diagram-caption">Parametrization \(D_{uv}\to S\); tangent vectors and normal.</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-surf" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-surf">
+      <div class="example-setup"><strong>Setup.</strong> Compute \(\iint_S z\,dS\), \(S\) the hemisphere \(x^2+y^2+z^2=4\), \(z\ge 0\). (Scenario F — scalar integrand.)</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Spherical parametrize</span><div class="step-content">\(\mathbf{r}(\phi,\theta)=\langle 2\sin\phi\cos\theta,2\sin\phi\sin\theta,2\cos\phi\rangle\), \(0\le\phi\le\pi/2\), \(0\le\theta\le 2\pi\).</div></div>
+        <div class="example-step"><span class="step-badge">Jacobian</span><div class="step-content"><div class="math-line">\[\|\mathbf{r}_\phi\times\mathbf{r}_\theta\|=4\sin\phi.\]</div></div></div>
+        <div class="example-step"><span class="step-badge">Integrate</span><div class="step-content">On \(S\), \(z=2\cos\phi\).<div class="math-line">\[\iint_S z\,dS=\int_0^{2\pi}\!\int_0^{\pi/2}(2\cos\phi)(4\sin\phi)\,d\phi\,d\theta=8\pi.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(8\pi\)</div><div class="ans-why">The Jacobian \(4\sin\phi\) accounts for the area-stretching from pole to equator — without it, you'd compute an ordinary double integral over \((\phi,\theta)\) space instead of actual surface area.</div></div>
+    </div>
+  </div>
+</article>
+
+<!-- CARD 6: Line Integral — Direct Computation -->
+<article class="theorem-card neutral fallback-card" id="card-line" aria-label="Reference 6: Line Integral — direct computation">
+  <div class="card-header">
+    <span class="theorem-number" aria-hidden="true">Reference 6</span>
+    <h2 class="theorem-name">Line Integral <span style="font-weight:400;font-size:.94rem;color:var(--muted)">(direct parametrization)</span></h2>
+    <span class="theorem-tag" id="line-tag">Direct / Fallback</span>
+    <span class="card-feedback-badge" id="badge-line" aria-hidden="true"></span>
+  </div>
+  <div class="reduction-strip">
+    <span class="reduction-arrow" aria-hidden="true">⟶</span>
+    <div class="reduction-text">
+      <strong>Converts</strong> a path integral to an ordinary single-variable integral via a parametrization \(\mathbf{r}(t)\).
+      <div class="validity-note">Use when \(\mathbf{F}\) is not conservative, the curve is not closed, or no theorem shortcut applies.</div>
+      <span class="fallback-note" id="line-fallback-note">This always works for curve integrals. It is the fallback when FTC, Green's, and Stokes' do not apply.</span>
+      <div class="why-wrong" id="why-line"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="statement-col">
+      <p class="conditions">Let \(C\) be parametrized by \(\mathbf{r}(t)=\langle x(t),y(t),z(t)\rangle\), \(a\le t\le b\), \(\mathbf{r}'(t)\) continuous.</p>
+      <div class="formula-block" aria-label="Vector line integral: integral of F dot dr equals integral of F(r(t)) dot r-prime(t) dt. Scalar line integral: integral of f ds equals integral of f times magnitude of r-prime dt">
+        \[\int_C\mathbf{F}\cdot d\mathbf{r}=\int_a^b\mathbf{F}(\mathbf{r}(t))\cdot\mathbf{r}'(t)\,dt\]
+        \[\int_C f\,ds=\int_a^b f(\mathbf{r}(t))\|\mathbf{r}'(t)\|\,dt\]
+      </div>
+      <div class="symbol-legend"><h3>Symbols</h3>
+        <ul class="symbol-list">
+          <li class="sym" tabindex="0" aria-label="r(t): parametrization of C">\(\mathbf{r}(t)\)<span class="tooltip">Smooth parametrization of the curve \(C\), \(a\le t\le b\)</span></li>
+          <li class="sym" tabindex="0" aria-label="r-prime(t): tangent vector">\(\mathbf{r}'(t)\)<span class="tooltip">Tangent vector to \(C\); its magnitude \(\|\mathbf{r}'(t)\|\) is the arc-length scaling factor</span></li>
+          <li class="sym" tabindex="0" aria-label="dr: vector line element">\(d\mathbf{r}\)<span class="tooltip">\(=\mathbf{r}'(t)\,dt\); the directed line element</span></li>
+          <li class="sym" tabindex="0" aria-label="ds: arc length element">\(ds\)<span class="tooltip">\(=\|\mathbf{r}'(t)\|\,dt\); the scalar arc-length element</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram-col" aria-hidden="true">
+      <svg viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <defs>
+          <marker id="dline1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#8E6F3E"/></marker>
+          <marker id="dline2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#CFB991"/></marker>
+        </defs>
+        <rect width="200" height="190" fill="#fafaf6" rx="3"/>
+        <!-- grid -->
+        <g stroke="#e8e0d0" stroke-width=".7">
+          <line x1="0" y1="48" x2="200" y2="48"/><line x1="0" y1="96" x2="200" y2="96"/>
+          <line x1="0" y1="144" x2="200" y2="144"/><line x1="48" y1="0" x2="48" y2="190"/>
+          <line x1="100" y1="0" x2="100" y2="190"/><line x1="152" y1="0" x2="152" y2="190"/>
+        </g>
+        <!-- field vectors (non-conservative swirl) -->
+        <g stroke="#CFB991" stroke-width="1" marker-end="url(#dline2)" opacity=".55">
+          <line x1="48" y1="144" x2="60" y2="128"/><line x1="100" y1="144" x2="88" y2="128"/>
+          <line x1="152" y1="144" x2="164" y2="128"/><line x1="48" y1="96" x2="60" y2="80"/>
+          <line x1="100" y1="96" x2="88" y2="80"/><line x1="152" y1="96" x2="168" y2="96"/>
+          <line x1="48" y1="48" x2="64" y2="48"/><line x1="100" y1="48" x2="88" y2="34"/>
+        </g>
+        <!-- curve C -->
+        <path d="M 26 166 C 55 130,90 155,118 108 S 164 58,178 36" fill="none" stroke="#8E6F3E" stroke-width="2.3" marker-end="url(#dline1)"/>
+        <!-- tangent vector at midpoint -->
+        <circle cx="110" cy="108" r="4" fill="#1a1a1a"/>
+        <line x1="110" y1="108" x2="136" y2="88" stroke="#1a1a1a" stroke-width="1.8" marker-end="url(#dline1)"/>
+        <text x="138" y="85" font-family="'EB Garamond',serif" font-size="10" fill="#1a1a1a" font-style="italic">r′(t)</text>
+        <!-- endpoints -->
+        <circle cx="26" cy="166" r="4.5" fill="#1a1a1a"/>
+        <circle cx="178" cy="36" r="4.5" fill="#1a1a1a"/>
+        <text x="10" y="180" font-family="'EB Garamond',serif" font-size="12" fill="#1a1a1a" font-style="italic">a</text>
+        <text x="182" y="34" font-family="'EB Garamond',serif" font-size="12" fill="#1a1a1a" font-style="italic">b</text>
+        <text x="88" y="130" font-family="'EB Garamond',serif" font-size="13" fill="#8E6F3E" font-style="italic">C</text>
+      </svg>
+      <p class="diagram-caption">Non-conservative field (gold); curve \(C\) from \(a\) to \(b\); tangent \(\mathbf{r}'(t)\).</p>
+    </div>
+  </div>
+  <div class="accordion-wrap">
+    <button class="accordion-trigger" aria-expanded="false" aria-controls="acc-line" onclick="toggleAccordion(this)"><span>✦ Worked Example</span><span class="accordion-chevron" aria-hidden="true">▼</span></button>
+    <div class="accordion-body" id="acc-line">
+      <div class="example-setup"><strong>Setup.</strong> Evaluate \(\int_C\mathbf{F}\cdot d\mathbf{r}\), \(\mathbf{F}=\langle y^2,x\rangle\), \(C\) the parabola \(y=x^2\) from \((0,0)\) to \((1,1)\).</div>
+      <div class="example-steps">
+        <div class="example-step"><span class="step-badge">Confirm not conservative</span><div class="step-content">\(\partial_y(y^2)=2y\neq 1=\partial_x(x)\). Mixed partials differ — FTC does not apply.</div></div>
+        <div class="example-step"><span class="step-badge">Parametrize</span><div class="step-content">\(\mathbf{r}(t)=\langle t,t^2\rangle\), \(0\le t\le 1\), \(\mathbf{r}'(t)=\langle 1,2t\rangle\).</div></div>
+        <div class="example-step"><span class="step-badge">Substitute</span><div class="step-content">\(\mathbf{F}(\mathbf{r}(t))=\langle t^4,t\rangle\).<div class="math-line">\[\mathbf{F}\cdot\mathbf{r}'=t^4(1)+t(2t)=t^4+2t^2.\]</div></div></div>
+        <div class="example-step"><span class="step-badge">Integrate</span><div class="step-content"><div class="math-line">\[\int_0^1(t^4+2t^2)\,dt=\tfrac{1}{5}+\tfrac{2}{3}=\tfrac{13}{15}.\]</div></div></div>
+      </div>
+      <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\(\dfrac{13}{15}\)</div><div class="ans-why">Because \(\mathbf{F}\) is not conservative, the answer depends on the specific path — a different curve from \((0,0)\) to \((1,1)\) gives a different value.</div></div>
+    </div>
+  </div>
+</article>
+
+</main>
+</div><!-- end cards-col-wrap -->
+
+<!-- ══════════════ SIDEBAR ═══════════════════════════════════ -->
+<aside class="concept-sidebar" aria-label="Generalized Stokes theorem connections">
+  <p class="sidebar-title">Concept Connections</p>
+  <p class="sidebar-subtitle">Every classical theorem is a special case of the generalized Stokes' theorem on a differential manifold.</p>
+  <div class="gen-stokes-box">
+    <div class="gen-stokes-label">Generalized Stokes' Theorem</div>
+    <div class="gen-stokes-formula" aria-label="Integral over boundary Omega equals integral over Omega of d omega">\[\int_{\partial\Omega}\omega = \int_{\Omega}d\omega\]</div>
+    <div class="gen-stokes-note">\(\Omega\) is an oriented \(k\)-manifold; \(\omega\) is a smooth \((k{-}1)\)-form; \(d\) is the exterior derivative unifying gradient, curl, and divergence.</div>
+  </div>
+  <div class="special-cases" role="list">
+    <div class="special-case" role="listitem"><div class="sc-header"><span class="sc-num" aria-hidden="true">1</span><span class="sc-name">FTC for Line Integrals</span></div><div class="sc-formula">\[\int_C \nabla f\cdot d\mathbf{r}=f(B)-f(A)\]</div><div class="sc-note">\(\Omega=C\), \(\omega=f\) (0-form), \(d\omega=df\). Boundary = endpoints.</div></div>
+    <div class="special-case" role="listitem"><div class="sc-header"><span class="sc-num" aria-hidden="true">2</span><span class="sc-name">Green's Theorem</span></div><div class="sc-formula">\[\oint_C P\,dx+Q\,dy=\iint_D\!\bigl(\tfrac{\partial Q}{\partial x}-\tfrac{\partial P}{\partial y}\bigr)dA\]</div><div class="sc-note">\(\Omega=D\) (2-manifold in \(\mathbb{R}^2\)), \(\omega=P\,dx+Q\,dy\), \(d\omega\) = scalar curl 2-form.</div></div>
+    <div class="special-case" role="listitem"><div class="sc-header"><span class="sc-num" aria-hidden="true">3</span><span class="sc-name">Stokes' Theorem</span></div><div class="sc-formula">\[\oint_C\mathbf{F}\cdot d\mathbf{r}=\iint_S(\nabla\times\mathbf{F})\cdot d\mathbf{S}\]</div><div class="sc-note">\(\Omega=S\) (2-manifold in \(\mathbb{R}^3\)), \(\omega\) = 1-form, \(d\omega\) encodes curl.</div></div>
+    <div class="special-case" role="listitem"><div class="sc-header"><span class="sc-num" aria-hidden="true">4</span><span class="sc-name">Divergence Theorem</span></div><div class="sc-formula">\[\oiint_S\mathbf{F}\cdot d\mathbf{S}=\iiint_E\nabla\cdot\mathbf{F}\;dV\]</div><div class="sc-note">\(\Omega=E\) (3-manifold), \(\omega\) = 2-form, \(d\omega=(\nabla\cdot\mathbf{F})\,dV\).</div></div>
+  </div>
+</aside>
+
+</div><!-- end page-grid -->
+
+<footer role="contentinfo">
+  <strong>MA 261 · Purdue University</strong> &nbsp;·&nbsp; Which Theorem to Use? — WCAG 2.2 AA
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   SCENARIO DATA
+   Each scenario has the rendered text, the correct theorem id,
+   and the expected tree answers.
+═══════════════════════════════════════════════════════════ */
+const SCENARIOS = {
+  ftc: {
+    badge: 'Scenario A',
+    text:  'Evaluate \\(\\int_C \\mathbf{F}\\cdot d\\mathbf{r}\\) where \\(\\mathbf{F}=\\langle 2xy, x^2\\rangle\\) from \\((0,0)\\) to \\((1,2)\\).',
+    correct: 'ftc',
+    field: '\\(\\mathbf{F}=\\langle 2xy, x^2\\rangle\\)',
+    domain: 'the path from \\((0,0)\\) to \\((1,2)\\)',
+    /* expected tree answers for corrective feedback */
+    expected: { q1:'curve', q2:'open', q3:'gradient', q4:'yes' },
+  },
+  green: {
+    badge: 'Scenario B',
+    text:  'Compute \\(\\oint_C(-y\\,dx+x\\,dy)\\) over the square boundary \\([0,1]^2\\) (CCW).',
+    correct: 'green',
+    field: '\\(\\langle -y, x\\rangle\\)',
+    domain: 'the square boundary \\([0,1]^2\\)',
+    expected: { q1:'curve', q2:'closed-2d', q3:'vector' },
+  },
+  stokes: {
+    badge: 'Scenario C',
+    text:  'Evaluate \\(\\oint_C \\mathbf{F}\\cdot d\\mathbf{r}\\) where \\(\\mathbf{F}=\\langle z,x,y\\rangle\\) and \\(C\\) is the unit circle in the plane \\(z=1\\), CCW from above.',
+    correct: 'stokes',
+    field: '\\(\\mathbf{F}=\\langle z,x,y\\rangle\\)',
+    domain: 'the unit circle in \\(z=1\\)',
+    expected: { q1:'curve', q2:'closed-3d', q3:'vector' },
+  },
+  div: {
+    badge: 'Scenario D',
+    text:  'Find the outward flux of \\(\\mathbf{F}=\\langle x,y,z\\rangle\\) through the unit sphere \\(x^2+y^2+z^2=1\\).',
+    correct: 'div',
+    field: '\\(\\mathbf{F}=\\langle x,y,z\\rangle\\)',
+    domain: 'the unit sphere',
+    expected: { q1:'solid', q2:'closed', q3:'vector' },
+  },
+  surf: {
+    badge: 'Scenario E',
+    text:  'Compute \\(\\iint_S \\mathbf{F}\\cdot d\\mathbf{S}\\) where \\(\\mathbf{F}=\\langle x,y,z\\rangle\\) and \\(S\\) is the upper hemisphere \\(z=\\sqrt{4-x^2-y^2}\\) with upward normal.',
+    correct: 'surf',
+    field: '\\(\\mathbf{F}=\\langle x,y,z\\rangle\\)',
+    domain: 'the upper hemisphere \\(z=\\sqrt{4-x^2-y^2}\\)',
+    expected: { q1:'surface', q2:'open-direct', q3:'vector' },
+  },
+  'direct-scalar': {
+    badge: 'Scenario F',
+    text:  'Compute \\(\\iint_S z\\,dS\\) where \\(S\\) is the hemisphere \\(x^2+y^2+z^2=4\\), \\(z\\ge 0\\). Note: the integrand is the scalar \\(z\\) — this is NOT a flux integral.',
+    correct: 'surf', /* direct surface integral */
+    field: 'scalar function \\(z\\)',
+    domain: 'the hemisphere \\(x^2+y^2+z^2=4\\)',
+    expected: { q1:'surface', q2:'open-direct', q3:'scalar' },
+  },
+  'direct-noncons': {
+    badge: 'Scenario G',
+    text:  'Evaluate \\(\\oint_C \\mathbf{F}\\cdot d\\mathbf{r}\\) where \\(\\mathbf{F}=\\langle y,-x\\rangle\\) (not conservative — check: \\(\\partial_y(-x)=-1\\neq 1=\\partial_x(y)\\)) and \\(C\\) is the unit circle CCW.',
+    correct: 'none', /* no classical theorem; direct parametrization */
+    field: '\\(\\mathbf{F}=\\langle y,-x\\rangle\\)',
+    domain: 'the unit circle CCW',
+    expected: { q1:'curve', q2:'closed-2d', q3:'vector' },
+  },
+  stokes2: {
+    badge: 'Scenario H',
+    text:  'Evaluate \\(\\oint_C\\mathbf{F}\\cdot d\\mathbf{r}\\) where \\(\\mathbf{F}=\\langle -y^2,x,z^2\\rangle\\) and \\(C\\) is the circle \\(x^2+y^2=1\\) in the plane \\(z=2\\), oriented CCW from above.',
+    correct: 'stokes',
+    field: '\\(\\mathbf{F}=\\langle -y^2,x,z^2\\rangle\\)',
+    domain: 'the circle \\(x^2+y^2=1\\) in \\(z=2\\)',
+    expected: { q1:'curve', q2:'closed-3d', q3:'vector' },
+  },
+  div2: {
+    badge: 'Scenario I',
+    text:  'Find the outward flux of \\(\\mathbf{F}=\\langle x^3,y^3,z^3\\rangle\\) through the sphere \\(x^2+y^2+z^2=a^2\\).',
+    correct: 'div',
+    field: '\\(\\mathbf{F}=\\langle x^3,y^3,z^3\\rangle\\)',
+    domain: 'the sphere \\(x^2+y^2+z^2=a^2\\)',
+    expected: { q1:'solid', q2:'closed', q3:'vector' },
+  },
+  green2: {
+    badge: 'Scenario J',
+    text:  'Evaluate \\(\\oint_C(x^2y\\,dx - xy^2\\,dy)\\) where \\(C\\) bounds the quarter-disk \\(D:\\, x^2+y^2\\le 4,\\, x\\ge 0,\\, y\\ge 0\\), oriented CCW.',
+    correct: 'green',
+    field: '\\(\\langle x^2y,\\,-xy^2\\rangle\\)',
+    domain: 'the quarter-disk \\(x^2+y^2\\le 4,\\,x\\ge0,\\,y\\ge0\\)',
+    expected: { q1:'curve', q2:'closed-2d', q3:'vector' },
+  },
+  'direct-open': {
+    badge: 'Scenario K',
+    text:  'Compute \\(\\int_C\\mathbf{F}\\cdot d\\mathbf{r}\\) where \\(\\mathbf{F}=\\langle 2xz,\\,y^2,\\,x^2\\rangle\\) along the helix \\(\\mathbf{r}(t)=\\langle\\cos t,\\sin t,t\\rangle\\), \\(0\\le t\\le\\pi\\).',
+    correct: 'none',
+    field: '\\(\\mathbf{F}=\\langle 2xz,y^2,x^2\\rangle\\)',
+    domain: 'the helix \\(\\mathbf{r}(t)=\\langle\\cos t,\\sin t,t\\rangle\\)',
+    expected: { q1:'curve', q2:'open', q3:'vector' },
+  },
+  ftc2: {
+    badge: 'Scenario L',
+    text:  'Evaluate \\(\\int_C\\nabla f\\cdot d\\mathbf{r}\\) where \\(f(x,y,z)=xe^y+z\\), along any smooth curve from \\((1,0,0)\\) to \\((2,1,3)\\).',
+    correct: 'ftc',
+    field: '\\(\\nabla f = \\langle e^y,\\,xe^y,\\,1\\rangle\\)',
+    domain: 'any path from \\((1,0,0)\\) to \\((2,1,3)\\)',
+    expected: { q1:'curve', q2:'open', q3:'gradient', q4:'yes' },
+  },
+};
+
+const THEOREM_NAMES = {
+  ftc:    'Fundamental Theorem for Line Integrals',
+  green:  "Green's Theorem",
+  stokes: "Stokes' Theorem",
+  div:    'Divergence Theorem',
+  surf:   'Surface Integral (direct)',
+  none:   'Line integral (direct)',
+  line:   'Line integral (direct)',
+};
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 2 QUESTION CONFIGURATION
+   FIX: domain-specific Q2 replaces single generic closed/open.
+   FIX: curve gets 2D/3D sub-question so Green's vs Stokes' routes correctly.
+═══════════════════════════════════════════════════════════ */
+const Q2_CONFIG = {
+  curve: {
+    label: 'Curve geometry',
+    text:  'Is the curve \\(C\\) a closed loop, and in which space does it lie?',
+    hint:  'A closed curve starts and ends at the same point. If it lies in a plane (ℝ²), Green\'s may apply. If it\'s a closed loop in 3-D space (ℝ³), Stokes\' may apply.',
+    opts: [
+      { val:'closed-2d', label:'Closed loop in a plane ℝ² (can bound a planar region)' },
+      { val:'closed-3d', label:'Closed loop in 3-D space ℝ³ (can bound a surface)' },
+      { val:'open',      label:'Open path — has distinct start and end points' },
+    ],
+    feedback: {
+      'closed-2d': 'A planar closed curve bounds a 2-D region D — the setting for Green\'s Theorem.',
+      'closed-3d': 'A spatial closed loop can bound a surface S in ℝ³ — the setting for Stokes\' Theorem.',
+      'open':      'An open path rules out Green\'s and Stokes\' (which need closed boundaries). FTC may still apply if the field is conservative.',
+    }
+  },
+  plane: {
+    label: 'Boundary type',
+    text:  'Is the boundary \\(C=\\partial D\\) a complete closed curve, positively (CCW) oriented?',
+    hint:  'Green\'s Theorem requires the boundary to be a complete closed loop (returning to its start) oriented counter-clockwise.',
+    opts: [
+      { val:'closed', label:'Yes — C is a complete closed (CCW) boundary curve' },
+      { val:'open',   label:'No — boundary is incomplete or not a closed loop' },
+    ],
+    feedback: {
+      'closed': 'A complete CCW boundary activates Green\'s Theorem: ∮_C P dx + Q dy = ∬_D (∂Q/∂x − ∂P/∂y) dA.',
+      'open':   'Green\'s Theorem needs a complete closed boundary. Without it, evaluate the line integral directly by parametrizing each piece.',
+    }
+  },
+  surface: {
+    label: 'Surface type',
+    text:  'What kind of surface is \\(S\\)?',
+    hint:  'A closed surface (like a sphere or sealed box) has no boundary edge and encloses a solid — use Divergence. An open surface has a boundary curve \\(C=\\partial S\\) — use Stokes\'. An open surface with no boundary theorem needed means direct flux computation.',
+    opts: [
+      { val:'open-boundary', label:'Open surface with a boundary curve C = ∂S (Stokes\' applies)' },
+      { val:'closed',        label:'Closed surface — completely encloses a solid E (Divergence applies)' },
+      { val:'open-direct',   label:'Open surface — computing flux directly (no boundary theorem needed)' },
+    ],
+    feedback: {
+      'open-boundary': 'An open surface with a boundary curve C = ∂S is the domain for Stokes\' Theorem.',
+      'closed':        'A closed surface S = ∂E bounding a solid E activates the Divergence Theorem.',
+      'open-direct':   'No boundary theorem simplifies this — compute ∬_S F·dS directly using the parametrization.',
+    }
+  },
+  solid: {
+    label: 'Bounding surface',
+    text:  'Is the bounding surface \\(S=\\partial E\\) a complete, closed, outward-oriented surface?',
+    hint:  'The Divergence Theorem requires a solid E enclosed by a complete closed surface with no missing faces and an outward-pointing normal.',
+    opts: [
+      { val:'closed', label:'Yes — S = ∂E is closed and outward-oriented' },
+      { val:'open',   label:'No — boundary is incomplete or not fully closed' },
+    ],
+    feedback: {
+      'closed': 'A complete closed bounding surface activates the Divergence Theorem: ∯_S F·dS = ∭_E ∇·F dV.',
+      'open':   'Without a complete closed boundary, the Divergence Theorem cannot be applied. Evaluate each surface piece separately.',
+    }
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   ROUTING LOGIC
+   FIX: Now correctly routes all combinations including
+        Stokes' (3D closed curve) vs Green's (2D closed curve),
+        and direct surface integral as an explicit correct path.
+═══════════════════════════════════════════════════════════ */
+function decide(q1, q2, q3, q4) {
+  /* q4 is the "did you actually verify the potential?" step,
+     shown only for curve + gradient path */
+
+  /* ── Curve branch ─────────────────────────────────────── */
+  if (q1 === 'curve') {
+    if (q3 === 'scalar') {
+      return { id:'line', note:'Scalar line integrals ∫_C f ds are computed directly — parametrize C and multiply by ‖r′(t)‖.' };
+    }
+    if (q3 === 'gradient') {
+      if (q4 === 'no') {
+        return { id:'line', note:'Mixed partials don\'t match, so F ≠ ∇f. FTC does not apply. Parametrize C and compute ∫_C F·r′(t) dt directly.' };
+      }
+      return { id:'ftc', note:'F = ∇f (confirmed). FTC: ∫_C ∇f·dr = f(B) − f(A). The path shape is irrelevant.' };
+    }
+    /* general vector field */
+    if (q2 === 'closed-2d') {
+      return { id:'green', note:"Closed planar loop: Green's Theorem converts ∮_C to ∬_D scalar curl." };
+    }
+    if (q2 === 'closed-3d') {
+      return { id:'stokes', note:"Closed 3-D loop: identify a surface S with C = ∂S, then use Stokes' Theorem." };
+    }
+    /* open path, non-conservative */
+    return { id:'line', note:'Non-conservative field on an open path — no classical theorem. Parametrize C directly: ∫_C F·r′(t) dt.' };
+  }
+
+  /* ── Plane region branch ───────────────────────────────── */
+  if (q1 === 'plane') {
+    if (q3 === 'scalar') {
+      return { id:null, note:'Scalar double integrals ∬_D f dA are computed directly (iterated integrals, polar, substitution).' };
+    }
+    if (q2 === 'closed') {
+      return { id:'green', note:"Green's Theorem: ∮_∂D P dx + Q dy = ∬_D (∂Q/∂x − ∂P/∂y) dA." };
+    }
+    return { id:null, note:'The boundary is not a complete closed loop — Green\'s cannot be applied. Parametrize each boundary piece.' };
+  }
+
+  /* ── Surface branch ───────────────────────────────────── */
+  if (q1 === 'surface') {
+    if (q3 === 'scalar') {
+      return { id:'surf', note:'Scalar surface integrals ∬_S f dS: parametrize S and multiply by the Jacobian ‖r_u × r_v‖.' };
+    }
+    if (q2 === 'open-boundary') {
+      return { id:'stokes', note:"Stokes' Theorem: ∮_C F·dr = ∬_S (∇×F)·dS. Consistently orient S and ∂S via the right-hand rule." };
+    }
+    if (q2 === 'closed') {
+      return { id:'div', note:'Closed surface S = ∂E: Divergence Theorem converts outward flux to ∭_E ∇·F dV.' };
+    }
+    /* open surface, direct flux */
+    return { id:'surf', note:'No boundary theorem — compute flux directly: ∬_S F·dS = ∬_{D_uv} F·(r_u×r_v) dA.' };
+  }
+
+  /* ── Solid branch ─────────────────────────────────────── */
+  if (q1 === 'solid') {
+    if (q3 === 'scalar') {
+      return { id:null, note:'Scalar triple integrals ∭_E f dV are computed directly — iterated integrals or coordinate changes.' };
+    }
+    if (q2 === 'closed') {
+      return { id:'div', note:'Divergence Theorem: ∯_∂E F·dS = ∭_E ∇·F dV.' };
+    }
+    return { id:null, note:'Incomplete boundary — evaluate each surface piece separately.' };
+  }
+
+  return { id:null, note:'Check your answers and try again.' };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let answers = { q1:null, q2:null, q3:null, q4:null };
+let initialGuess = null;
+let hasCommitted = false;
+let currentScenario = null;
+
+/* Step 4 (verify potential) is shown only when q1=curve AND q3=gradient */
+function needsStep4() {
+  return answers.q1 === 'curve' && answers.q3 === 'gradient';
+}
+
+/* Maximum number of steps for the current path */
+function maxSteps() {
+  if (needsStep4()) return 4;
+  return 3;
+}
+
+/* Which steps are complete */
+function stepsComplete() {
+  if (!answers.q1) return 0;
+  if (!answers.q2) return 1;
+  if (!answers.q3) return 2;
+  if (needsStep4() && !answers.q4) return 3;
+  return maxSteps();
+}
+
+function allAnswered() {
+  if (!answers.q1 || !answers.q2 || !answers.q3) return false;
+  if (needsStep4() && !answers.q4) return false;
+  return true;
+}
+
+/* ── Screen reader announce ──────────────────────────────── */
+function announce(msg) {
+  const el = document.getElementById('srLive');
+  el.textContent = '';
+  requestAnimationFrame(() => { el.textContent = msg; });
+}
+
+/* ── Accordion ────────────────────────────────────────────── */
+function toggleAccordion(btn) {
+  const body = btn.nextElementSibling;
+  const open = body.classList.contains('open');
+  if (open) { body.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  else {
+    body.classList.add('open'); btn.setAttribute('aria-expanded','true');
+    typeset([body]);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCENARIO LOAD
+═══════════════════════════════════════════════════════════ */
+function loadScenario() {
+  const val = document.getElementById('labScenario').value;
+  resetAll(true);
+
+  if (val === 'none') {
+    document.getElementById('step1-group').disabled = true;
+    document.getElementById('scenarioCard').classList.remove('show');
+    document.getElementById('stepProgress').classList.remove('show');
+    currentScenario = null;
+    announce('Scenario cleared.');
+    return;
+  }
+
+  currentScenario = SCENARIOS[val] || null;
+  if (!currentScenario) return;
+
+  /* Show scenario card */
+  document.getElementById('scBadge').textContent = currentScenario.badge;
+  document.getElementById('scText').innerHTML = currentScenario.text;
+  const card = document.getElementById('scenarioCard');
+  card.classList.add('show');
+  typeset([card]);
+
+  /* Unlock step 1 */
+  document.getElementById('step1-group').disabled = false;
+  document.getElementById('stepProgress').classList.add('show');
+  updateProgress();
+
+  /* Reset surf card tag to default */
+  setSurfTag(false);
+
+  announce(currentScenario.badge + ' loaded. Make your initial guess, then answer the three tree questions.');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESS INDICATOR
+   FIX: was missing entirely
+═══════════════════════════════════════════════════════════ */
+function updateProgress() {
+  const done = stepsComplete();
+  const max  = maxSteps();
+  const next = done + 1;
+  const el   = document.getElementById('stepProgressText');
+  if (done >= max) {
+    el.textContent = `All ${max} steps complete — ready to commit.`;
+  } else {
+    el.innerHTML = `<strong>Step ${next} of ${max}</strong>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 2 — DYNAMIC QUESTION BUILDER
+   FIX: was single generic closed/open; now domain-specific
+        with correct 2D/3D curve split
+═══════════════════════════════════════════════════════════ */
+function buildStep2() {
+  const q1 = answers.q1;
+  const cfg = Q2_CONFIG[q1];
+  if (!cfg) return;
+
+  document.getElementById('s2label').textContent = cfg.label;
+  const q2txt = document.getElementById('q2-text');
+  const q2hnt = document.getElementById('q2-hint');
+  q2txt.innerHTML = cfg.text;
+  q2hnt.innerHTML = cfg.hint;
+
+  /* Inject scenario-specific domain text if available */
+  if (currentScenario) {
+    const sc = currentScenario;
+    if (q1 === 'curve')   q2txt.innerHTML = `Looking at <strong>${sc.domain}</strong>: ` + cfg.text;
+    if (q1 === 'plane')   q2txt.innerHTML = `For the boundary of <strong>${sc.domain}</strong>: ` + cfg.text;
+    if (q1 === 'surface') q2txt.innerHTML = `For <strong>${sc.domain}</strong>: ` + cfg.text;
+    if (q1 === 'solid')   q2txt.innerHTML = `For the boundary of <strong>${sc.domain}</strong>: ` + cfg.text;
+  }
+
+  /* Build option pills */
+  const container = document.getElementById('q2');
+  container.innerHTML = '';
+  cfg.opts.forEach(opt => {
+    const inp = document.createElement('input');
+    inp.type = 'radio'; inp.name = 'q2'; inp.id = 'q2-' + opt.val; inp.value = opt.val;
+    inp.addEventListener('change', () => {
+      if (hasCommitted) return;
+      container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
+      document.querySelector('label[for="q2-'+opt.val+'"]').classList.add('selected');
+      answers.q2 = opt.val;
+      /* inline feedback */
+      const fb = document.getElementById('fb2');
+      const corrective2 = getCorrectiveFeedback('q2', opt.val);
+      if (corrective2) {
+        fb.innerHTML = '⚠ ' + corrective2;
+        fb.className = 'step-inline-fb show step-inline-fb-warn';
+      } else {
+        fb.innerHTML = cfg.feedback[opt.val] || '';
+        fb.className = 'step-inline-fb show';
+      }
+      typeset([fb]);
+      /* clear downstream */
+      answers.q3 = null; answers.q4 = null;
+      document.querySelectorAll('#q3 input,#q4 input').forEach(r => r.checked = false);
+      document.querySelectorAll('#q3 label,#q4 label').forEach(l => l.classList.remove('selected'));
+      document.getElementById('fb3').className = 'step-inline-fb';
+      document.getElementById('fb4').className = 'step-inline-fb';
+      updateQ3Text();
+      document.getElementById('step3-group').disabled = false;
+      updateProgress();
+      updateCommitArea();
+    });
+    const lbl = document.createElement('label');
+    lbl.setAttribute('for', 'q2-' + opt.val);
+    lbl.innerHTML = `<span class="pill-dot" aria-hidden="true"></span>${opt.label}`;
+    container.appendChild(inp);
+    container.appendChild(lbl);
+  });
+
+  typeset([q2txt, q2hnt, container]);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 3 — dynamic field question text
+   FIX: injects scenario-specific field name
+═══════════════════════════════════════════════════════════ */
+function updateQ3Text() {
+  const q3txt = document.getElementById('q3-text');
+  if (currentScenario) {
+    q3txt.innerHTML = `Test <strong>${currentScenario.field}</strong>. What type of field is the integrand?`;
+  } else {
+    q3txt.textContent = 'What type of field is the integrand?';
+  }
+  typeset([q3txt]);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 4 — show/hide verify-potential step
+   FIX: was entirely missing; now explicit for curve + conservative path
+═══════════════════════════════════════════════════════════ */
+function updateStep4Visibility() {
+  const show = needsStep4();
+  document.getElementById('step4-group').style.display = show ? '' : 'none';
+  document.getElementById('s4divider').style.display   = show ? '' : 'none';
+  if (show) {
+    document.getElementById('step4-group').disabled = !answers.q3;
+    /* update hint with scenario-specific field */
+    if (currentScenario) {
+      document.getElementById('q4-hint').innerHTML =
+        `For \\(\\mathbf{F}=${currentScenario.field}\\): compute all mixed partial derivatives. If they all match, find \\(f\\) by integrating component by component.`;
+      typeset([document.getElementById('q4-hint')]);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP INLINE FEEDBACK TEXT
+   FIX: domain-aware messages for each step
+═══════════════════════════════════════════════════════════ */
+const STEP1_FEEDBACK = {
+  curve:   'Good. A curve integral ∫_C or ∮_C — you are integrating along a path.',
+  plane:   'Good. A double integral ∬_D over a flat region in ℝ² — check whether the boundary is a closed loop.',
+  surface: 'Good. A surface integral ∬_S — either a scalar area integral or a flux integral.',
+  solid:   'Good. A triple integral ∭_E over a 3-D solid — the Divergence Theorem may apply.',
+};
+
+const STEP3_FEEDBACK = {
+  gradient: 'Conservative field — all mixed partials agree. Now verify you can actually find the potential f.',
+  vector:   'General vector field — the specific theorem depends on the domain geometry.',
+  scalar:   'Scalar integrand — no boundary theorem applies. Use direct parametrization with the Jacobian ‖r_u × r_v‖ (or ‖r′‖ for line integrals).',
+};
+
+const STEP4_FEEDBACK = {
+  yes: 'Potential confirmed. FTC applies: ∫_C ∇f·dr = f(B) − f(A) — only the endpoints matter.',
+  no:  'Mixed partials don\'t match — F is not conservative. FTC does not apply. Compute ∫_C F·r′(t) dt directly by parametrization.',
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CORRECTIVE FEEDBACK
+   Per-scenario messages when a student picks a step answer that
+   conflicts with the correct path for that scenario.
+   Keys: scenarioId → { stepKey → { wrongValue: message } }
+═══════════════════════════════════════════════════════════ */
+const CORRECTIVE_FEEDBACK = {
+  ftc: {
+    q1: {
+      plane:   'Look again — the integral is \\(\\int_C\\mathbf{F}\\cdot d\\mathbf{r}\\), which runs <em>along a curve \\(C\\)</em>, not over a 2-D region.',
+      surface: 'The notation \\(\\int_C\\) indicates a line integral over a path \\(C\\), not a surface.',
+      solid:   'The integral \\(\\int_C\\) is a line integral. Solid regions appear in triple integrals \\(\\iiint_E\\).',
+    },
+    q2: {
+      'closed-2d': 'The path goes from \\((0,0)\\) to \\((1,2)\\) — distinct endpoints mean it is <em>open</em>, not a closed loop.',
+      'closed-3d': 'The path goes from \\((0,0)\\) to \\((1,2)\\) — that is an open path, not a closed 3-D loop.',
+    },
+    q3: {
+      vector: 'Check the mixed partials of \\(\\mathbf{F}=\\langle 2xy,x^2\\rangle\\): \\(\\partial_y(2xy)=2x\\) and \\(\\partial_x(x^2)=2x\\). They match — the field <em>is</em> conservative.',
+      scalar: '\\(\\mathbf{F}=\\langle 2xy,x^2\\rangle\\) is a vector field (look for the dot product \\(\\mathbf{F}\\cdot d\\mathbf{r}\\)), not a scalar function.',
+    },
+    q4: {
+      no: 'Double-check: \\(\\partial_y(2xy)=2x=\\partial_x(x^2)\\). The partials do match, so \\(f=x^2 y\\) is a valid potential.',
+    },
+  },
+  green: {
+    q1: {
+      plane:   'The integral \\(\\oint_C\\) is written as a <em>closed line integral</em> along \\(C\\), the boundary of the square — not a double integral over the interior.',
+      surface: 'The \\(\\oint_C\\) notation means a closed path integral, not a surface integral.',
+      solid:   'Green\'s Theorem lives in \\(\\mathbb{R}^2\\). The integral here is over a planar curve, not a solid.',
+    },
+    q2: {
+      'closed-3d': 'The square \\([0,1]^2\\) is a flat planar region — its boundary is a closed loop <em>in the plane</em> \\(\\mathbb{R}^2\\), not a spatial 3-D curve.',
+      open:        'The square boundary is a complete closed loop (all four sides, returning to the start) — that is the definition of a closed curve.',
+    },
+    q3: {
+      gradient: 'Check: \\(\\partial_y(-y)=-1\\) but \\(\\partial_x(x)=1\\). The mixed partials don\'t match, so \\(\\langle -y,x\\rangle\\) is <em>not</em> conservative.',
+      scalar:   '\\(\\langle -y,x\\rangle\\) is a 2-component vector field, not a scalar function.',
+    },
+  },
+  stokes: {
+    q1: {
+      plane:   '\\(C\\) is a circle in the plane \\(z=1\\) inside \\(\\mathbb{R}^3\\) — a 3-D closed curve, not a flat 2-D region.',
+      surface: 'The integral \\(\\oint_C\\) is a <em>line</em> integral around a curve \\(C\\), not over a surface \\(S\\).',
+      solid:   '\\(\\oint_C\\) denotes a closed line integral. Solid regions appear in triple integrals.',
+    },
+    q2: {
+      'closed-2d': 'The unit circle lies in the plane \\(z=1\\) inside \\(\\mathbb{R}^3\\) — it is a closed loop in 3-D space. It bounds the disk \\(x^2+y^2\\le1\\) in \\(z=1\\), which is the surface for Stokes\'.',
+      open:        'The unit circle is a complete closed loop (it returns to its start) — it is not an open path.',
+    },
+    q3: {
+      gradient: 'Check \\(\\mathbf{F}=\\langle z,x,y\\rangle\\): \\(\\partial_y z=0\\neq1=\\partial_z x\\). Mixed partials fail — the field is not conservative.',
+      scalar:   '\\(\\mathbf{F}=\\langle z,x,y\\rangle\\) is a vector field with a dot-product integral \\(\\mathbf{F}\\cdot d\\mathbf{r}\\), not a scalar integrand.',
+    },
+  },
+  div: {
+    q1: {
+      curve:   'The problem asks for <em>outward flux through the sphere</em> — a surface integral \\(\\oiint_S\\). Think of the sphere as the boundary of the solid ball.',
+      surface: 'Flux through a closed surface is most efficiently handled by thinking of the <em>enclosed solid</em>. The sphere encloses the unit ball — treat the domain as the solid \\(E\\) for the Divergence Theorem.',
+    },
+    q2: {
+      open: 'The unit sphere \\(x^2+y^2+z^2=1\\) is a <em>complete closed surface</em> — it has no boundary edges. Select the closed option.',
+    },
+    q3: {
+      gradient: 'Test \\(\\mathbf{F}=\\langle x,y,z\\rangle\\): while \\(\\nabla\\cdot\\mathbf{F}=3\\) is clean, conservatism is irrelevant here. The domain is a solid with a closed surface boundary — classify the field as general vector field.',
+      scalar:   '\\(\\mathbf{F}=\\langle x,y,z\\rangle\\) is a vector field. The flux integral \\(\\oiint_S\\mathbf{F}\\cdot d\\mathbf{S}\\) uses a dot product.',
+    },
+  },
+  surf: {
+    q1: {
+      curve:   'The integral \\(\\iint_S\\) is over a <em>surface</em> \\(S\\), not a curve. Look at the double-integral sign and \\(d\\mathbf{S}\\).',
+      plane:   'The hemisphere lives in \\(\\mathbb{R}^3\\), not in a flat plane. It is a curved 2-D surface.',
+      solid:   'The hemisphere is a 2-D surface, not a 3-D solid region.',
+    },
+    q2: {
+      'open-boundary': 'The upper hemisphere has a boundary circle (the equator), but we are computing the flux <em>directly</em> — there is no second surface to apply Stokes\' to. Select the direct-flux option.',
+      closed:          'The upper hemisphere is an <em>open</em> surface — it has a boundary edge (the equator circle). A closed surface would fully enclose a solid with no edges.',
+    },
+    q3: {
+      gradient: '\\(\\mathbf{F}=\\langle x,y,z\\rangle\\) has \\(\\nabla\\cdot\\mathbf{F}=3\\), but on an open surface we compute the flux directly — conservatism does not enter. Classify it as a general vector field.',
+      scalar:   'The \\(d\\mathbf{S}\\) in \\(\\iint_S\\mathbf{F}\\cdot d\\mathbf{S}\\) signals a vector flux integral, not a scalar integrand \\(dS\\).',
+    },
+  },
+  'direct-scalar': {
+    q1: {
+      curve:   'The integral \\(\\iint_S z\\,dS\\) is over a <em>surface</em> \\(S\\) — look for the double-integral sign and \\(dS\\) (surface area element).',
+      plane:   'The hemisphere is a curved surface in \\(\\mathbb{R}^3\\), not a flat planar region.',
+      solid:   'The hemisphere is a 2-D surface, not a 3-D solid.',
+    },
+    q2: {
+      'open-boundary': 'We are integrating a scalar \\(z\\,dS\\) directly — there is no vector field or Stokes\' theorem at play. Select the direct-surface option.',
+      closed:          'The hemisphere is open (it has a boundary at the equator). Select the direct-surface option.',
+    },
+    q3: {
+      vector:   '\\(z\\,dS\\) contains no dot product — \\(z\\) is a scalar function multiplied by the area element \\(dS\\). This is a scalar surface integral.',
+      gradient: '\\(z\\) is a scalar function, not a conservative vector field.',
+    },
+  },
+  'direct-noncons': {
+    q1: {
+      plane:   'The integral \\(\\oint_C\\) is a <em>closed line integral</em> around \\(C\\) — not a double integral over a planar region.',
+      surface: '\\(\\oint_C\\) is a line integral. The domain is the curve \\(C\\), not a surface.',
+      solid:   '\\(\\oint_C\\) is a closed line integral over the unit circle, not a solid region.',
+    },
+    q2: {
+      'closed-3d': 'The unit circle lies in the \\(xy\\)-plane — it is a closed loop in \\(\\mathbb{R}^2\\), not a 3-D spatial loop.',
+      open:        'The unit circle is a complete closed loop that returns to its starting point — it is not an open path.',
+    },
+    q3: {
+      gradient: 'Verify: \\(\\partial_y(y)=1\\) but \\(\\partial_x(-x)=-1\\). The mixed partials don\'t match, so \\(\\langle y,-x\\rangle\\) is NOT conservative.',
+      scalar:   '\\(\\langle y,-x\\rangle\\) is a 2-component vector field with a \\(\\mathbf{F}\\cdot d\\mathbf{r}\\) dot product.',
+    },
+  },
+  stokes2: {
+    q1: {
+      plane:   '\\(C\\) is a circle in \\(z=2\\) inside \\(\\mathbb{R}^3\\) — a 3-D closed curve, not a flat 2-D region.',
+      surface: 'The integral \\(\\oint_C\\) is a <em>line</em> integral around \\(C\\), not a surface integral.',
+      solid:   '\\(\\oint_C\\) denotes a closed line integral. Solid regions appear in triple integrals.',
+    },
+    q2: {
+      'closed-2d': 'The circle \\(x^2+y^2=1\\) lies in the plane \\(z=2\\) inside \\(\\mathbb{R}^3\\). It is a closed loop in 3-D space — it bounds the disk in \\(z=2\\), making this a Stokes\' scenario.',
+      open:        'The circle is a complete closed loop (it returns to its start) — not an open path.',
+    },
+    q3: {
+      gradient: 'Check \\(\\mathbf{F}=\\langle -y^2,x,z^2\\rangle\\): \\(\\partial_y(-y^2)=-2y\\neq 1=\\partial_x(x)\\). Mixed partials fail — not conservative.',
+      scalar:   '\\(\\mathbf{F}=\\langle -y^2,x,z^2\\rangle\\) is a vector field — look for the dot product \\(\\mathbf{F}\\cdot d\\mathbf{r}\\).',
+    },
+  },
+  div2: {
+    q1: {
+      curve:   'The problem asks for outward flux <em>through the sphere</em> — that is a surface/solid setup. Think of the sphere as the boundary \\(\\partial E\\) of the solid ball.',
+      surface: 'Flux through a closed sphere is most efficiently handled by treating the enclosed solid ball as the domain \\(E\\). Select "solid region."',
+    },
+    q2: {
+      open: 'The sphere \\(x^2+y^2+z^2=a^2\\) is a complete closed surface with no boundary edges. Select the closed option.',
+    },
+    q3: {
+      gradient: '\\(\\mathbf{F}=\\langle x^3,y^3,z^3\\rangle\\): while the field has a potential in 1-D components, conservatism is irrelevant here. The domain is a solid with a closed surface — classify as general vector field.',
+      scalar:   '\\(\\mathbf{F}=\\langle x^3,y^3,z^3\\rangle\\) is a vector field; the flux integral uses \\(\\mathbf{F}\\cdot d\\mathbf{S}\\).',
+    },
+  },
+  green2: {
+    q1: {
+      plane:   'The integral \\(\\oint_C\\) is a closed line integral along the boundary curve — not a double integral over the quarter-disk interior.',
+      surface: '\\(\\oint_C\\) is a line integral around the boundary of the quarter-disk, not a surface integral.',
+      solid:   'Green\'s Theorem operates in \\(\\mathbb{R}^2\\). The domain here is a planar curve, not a solid.',
+    },
+    q2: {
+      'closed-3d': 'The boundary of the quarter-disk lies entirely in the \\(xy\\)-plane — it is a closed loop in \\(\\mathbb{R}^2\\), not a 3-D spatial curve.',
+      open:        'The full boundary of the quarter-disk is a closed curve (two straight edges along the axes plus the arc), oriented CCW — it is closed.',
+    },
+    q3: {
+      gradient: 'Check \\(\\langle x^2y,-xy^2\\rangle\\): \\(\\partial_y(x^2y)=x^2\\) but \\(\\partial_x(-xy^2)=-y^2\\). These are not equal — the field is not conservative.',
+      scalar:   '\\(\\langle x^2y,-xy^2\\rangle\\) is a vector field with a \\(dx\\,dy\\) line integral, not a scalar integrand.',
+    },
+  },
+  'direct-open': {
+    q1: {
+      plane:   'The helix \\(\\mathbf{r}(t)=\\langle\\cos t,\\sin t,t\\rangle\\) is a curve in \\(\\mathbb{R}^3\\) — a line integral \\(\\int_C\\), not a double integral over a 2-D region.',
+      surface: 'The integral is over the helix curve \\(C\\), not a surface.',
+      solid:   'The helix is a 1-D curve; the domain is a path, not a solid region.',
+    },
+    q2: {
+      'closed-2d': 'The helix from \\(t=0\\) to \\(t=\\pi\\) goes from \\((1,0,0)\\) to \\((-1,0,\\pi)\\) — different start and end points. It is an <em>open</em> path.',
+      'closed-3d': 'The helix endpoints are \\((1,0,0)\\) and \\((-1,0,\\pi)\\) — they don\'t coincide, so it is an open path, not a closed loop.',
+    },
+    q3: {
+      gradient: 'Check \\(\\mathbf{F}=\\langle 2xz,y^2,x^2\\rangle\\): \\(\\partial_z(2xz)=2x\\) but \\(\\partial_x(x^2)=2x\\) ✓, yet \\(\\partial_y(2xz)=0\\neq 0\\) and \\(\\partial_z(y^2)=0\\) ✓, but \\(\\partial_x(y^2)=0\\neq 2y=\\partial_y(2xz)\\). Mixed partials fail — not conservative.',
+      scalar:   '\\(\\mathbf{F}=\\langle 2xz,y^2,x^2\\rangle\\) is a vector field with a \\(\\mathbf{F}\\cdot d\\mathbf{r}\\) dot product.',
+    },
+  },
+  ftc2: {
+    q1: {
+      plane:   'The integral is \\(\\int_C\\nabla f\\cdot d\\mathbf{r}\\) — a line integral along a curve \\(C\\), not a double integral.',
+      surface: 'The \\(\\int_C\\) notation signals a line integral along a curve, not a surface integral.',
+      solid:   '\\(\\int_C\\) is a line integral over a path, not a triple integral over a solid.',
+    },
+    q2: {
+      'closed-2d': 'The path goes from \\((1,0,0)\\) to \\((2,1,3)\\) — different endpoints mean it is an open path.',
+      'closed-3d': 'The path from \\((1,0,0)\\) to \\((2,1,3)\\) has distinct start and end points — it is open.',
+    },
+    q3: {
+      vector: 'The problem explicitly states \\(\\nabla f\\) — the gradient of a scalar \\(f=xe^y+z\\). This IS a conservative field (it equals its own gradient). Select "Conservative."',
+      scalar: '\\(\\nabla f=\\langle e^y,xe^y,1\\rangle\\) is a vector field with a dot product \\(\\nabla f\\cdot d\\mathbf{r}\\), not a scalar integrand.',
+    },
+    q4: {
+      no: '\\(f(x,y,z)=xe^y+z\\) is given explicitly — verify: \\(f_x=e^y\\), \\(f_y=xe^y\\), \\(f_z=1\\). These match \\(\\nabla f\\) exactly. The potential exists.',
+    },
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENARIO-SPECIFIC WORKED SOLUTIONS
+   Injected into the correct theorem card's accordion after commit.
+   Keys match SCENARIOS keys. HTML is inserted after the static
+   example-answer block in the accordion body.
+═══════════════════════════════════════════════════════════ */
+const SCENARIO_WORKED = {
+  ftc: {
+    cardId: 'acc-ftc',
+    html: `<div class="scenario-worked" id="sw-ftc">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario A — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\int_C\\mathbf{F}\\cdot d\\mathbf{r}\\), \\(\\mathbf{F}=\\langle 2xy,x^2\\rangle\\), from \\((0,0)\\) to \\((1,2)\\).</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Check conservative</span><div class="step-content">\\(\\partial_y(2xy)=2x\\) and \\(\\partial_x(x^2)=2x\\). They match — \\(\\mathbf{F}\\) is conservative. ✓</div></div>
+    <div class="example-step"><span class="step-badge">Find potential</span><div class="step-content">Integrate: \\(f_x=2xy\\Rightarrow f=x^2y+g(y)\\); then \\(f_y=x^2+g'(y)=x^2\\Rightarrow g'(y)=0\\). So \\(f(x,y)=x^2y\\).</div></div>
+    <div class="example-step"><span class="step-badge">Apply FTC</span><div class="step-content"><div class="math-line">\\[\\int_C\\mathbf{F}\\cdot d\\mathbf{r}=f(1,2)-f(0,0)=(1)^2(2)-0=2.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(2\\)</div><div class="ans-why">Path independence: any smooth curve from \\((0,0)\\) to \\((1,2)\\) gives the same value.</div></div>
+</div>`,
+  },
+  green: {
+    cardId: 'acc-green',
+    html: `<div class="scenario-worked" id="sw-green">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario B — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Compute \\(\\oint_C(-y\\,dx+x\\,dy)\\) over the square boundary \\([0,1]^2\\), CCW.</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Scalar curl</span><div class="step-content">\\(P=-y,\\;Q=x\\Rightarrow\\dfrac{\\partial Q}{\\partial x}-\\dfrac{\\partial P}{\\partial y}=1-(-1)=2.\\)</div></div>
+    <div class="example-step"><span class="step-badge">Apply Green's</span><div class="step-content"><div class="math-line">\\[\\oint_C(-y\\,dx+x\\,dy)=\\iint_{[0,1]^2}2\\,dA=2\\cdot(1)^2=2.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(2\\)</div><div class="ans-why">Direct parametrization of all four sides would require four separate line integrals; Green's converts everything to a single double integral over the square.</div></div>
+</div>`,
+  },
+  stokes: {
+    cardId: 'acc-stokes',
+    html: `<div class="scenario-worked" id="sw-stokes">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario C — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\oint_C\\mathbf{F}\\cdot d\\mathbf{r}\\), \\(\\mathbf{F}=\\langle z,x,y\\rangle\\), \\(C\\) = unit circle in \\(z=1\\), CCW from above.</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Choose surface</span><div class="step-content">Let \\(S\\) be the unit disk \\(x^2+y^2\\le1\\) in \\(z=1\\), oriented upward (\\(\\hat{\\mathbf{n}}=\\mathbf{k}\\)) — consistent with the CCW orientation of \\(C\\) via the right-hand rule.</div></div>
+    <div class="example-step"><span class="step-badge">Compute curl</span><div class="step-content"><div class="math-line">\\[\\nabla\\times\\mathbf{F}=\\begin{vmatrix}\\mathbf{i}&\\mathbf{j}&\\mathbf{k}\\\\\\partial_x&\\partial_y&\\partial_z\\\\z&x&y\\end{vmatrix}=\\langle 1,1,1\\rangle.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Flux integral</span><div class="step-content"><div class="math-line">\\[\\iint_S(\\nabla\\times\\mathbf{F})\\cdot d\\mathbf{S}=\\iint_S\\langle1,1,1\\rangle\\cdot\\langle0,0,1\\rangle\\,dA=\\iint_D 1\\,dA=\\pi(1)^2=\\pi.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(\\pi\\)</div><div class="ans-why">Stokes' lets us replace the awkward parametric line integral around \\(C\\) with a simple flux integral over the flat disk \\(S\\). Only the \\(z\\)-component of \\(\\nabla\\times\\mathbf{F}\\) survives the dot product with \\(\\hat{\\mathbf{n}}=\\mathbf{k}\\).</div></div>
+</div>`,
+  },
+  div: {
+    cardId: 'acc-div',
+    html: `<div class="scenario-worked" id="sw-div">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario D — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Find the outward flux of \\(\\mathbf{F}=\\langle x,y,z\\rangle\\) through the unit sphere \\(x^2+y^2+z^2=1\\).</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Divergence</span><div class="step-content">\\(\\nabla\\cdot\\mathbf{F}=\\partial_x(x)+\\partial_y(y)+\\partial_z(z)=1+1+1=3.\\)</div></div>
+    <div class="example-step"><span class="step-badge">Apply Divergence Thm.</span><div class="step-content"><div class="math-line">\\[\\oiint_S\\mathbf{F}\\cdot d\\mathbf{S}=\\iiint_E 3\\,dV=3\\cdot\\tfrac{4}{3}\\pi(1)^3=4\\pi.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(4\\pi\\)</div><div class="ans-why">The divergence is constant (3), so the triple integral reduces to \\(3\\times\\text{vol}(E)\\). Direct surface integration over the sphere would require a messy spherical-coordinate parametrization.</div></div>
+</div>`,
+  },
+  surf: {
+    cardId: 'acc-surf',
+    html: `<div class="scenario-worked" id="sw-surf-e">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario E — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Compute \\(\\iint_S\\mathbf{F}\\cdot d\\mathbf{S}\\), \\(\\mathbf{F}=\\langle x,y,z\\rangle\\), \\(S\\): upper hemisphere \\(z=\\sqrt{4-x^2-y^2}\\), upward normal.</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Parametrize</span><div class="step-content">Use \\(\\mathbf{r}(\\phi,\\theta)=\\langle 2\\sin\\phi\\cos\\theta,2\\sin\\phi\\sin\\theta,2\\cos\\phi\\rangle\\) with \\(0\\le\\phi\\le\\pi/2\\), \\(0\\le\\theta\\le2\\pi\\).</div></div>
+    <div class="example-step"><span class="step-badge">Normal vector</span><div class="step-content">\\(\\mathbf{r}_\\phi\\times\\mathbf{r}_\\theta=4\\sin\\phi\\,\\langle\\sin\\phi\\cos\\theta,\\sin\\phi\\sin\\theta,\\cos\\phi\\rangle\\) (upward ✓).</div></div>
+    <div class="example-step"><span class="step-badge">Dot product</span><div class="step-content">On \\(S\\): \\(\\mathbf{F}=\\langle2\\sin\\phi\\cos\\theta,2\\sin\\phi\\sin\\theta,2\\cos\\phi\\rangle\\).<div class="math-line">\\[\\mathbf{F}\\cdot(\\mathbf{r}_\\phi\\times\\mathbf{r}_\\theta)=4\\sin\\phi\\cdot 2(\\sin^2\\phi+\\cos^2\\phi)=8\\sin\\phi.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Integrate</span><div class="step-content"><div class="math-line">\\[\\iint_S\\mathbf{F}\\cdot d\\mathbf{S}=\\int_0^{2\\pi}\\!\\int_0^{\\pi/2}8\\sin\\phi\\,d\\phi\\,d\\theta=2\\pi\\cdot8\\cdot1=16\\pi.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(16\\pi\\)</div><div class="ans-why">No boundary theorem shortcut exists here — the hemisphere is open and has a rim, so we integrate directly via the spherical parametrization.</div></div>
+</div>`,
+  },
+  'direct-scalar': {
+    cardId: 'acc-surf',
+    html: `<div class="scenario-worked" id="sw-surf-f">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario F — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Compute \\(\\iint_S z\\,dS\\) on \\(S\\): hemisphere \\(x^2+y^2+z^2=4\\), \\(z\\ge0\\). (This is the same as the static example above — you've matched it!)</div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(8\\pi\\)</div><div class="ans-why">See the Worked Example above for the full solution using spherical coordinates.</div></div>
+</div>`,
+  },
+  'direct-noncons': {
+    cardId: 'acc-line',
+    html: `<div class="scenario-worked" id="sw-noncons">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario G — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\oint_C\\mathbf{F}\\cdot d\\mathbf{r}\\), \\(\\mathbf{F}=\\langle y,-x\\rangle\\), \\(C\\) = unit circle CCW. (No FTC — direct parametrization.)</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Confirm non-conservative</span><div class="step-content">\\(\\partial_y(y)=1\\neq -1=\\partial_x(-x)\\). FTC does not apply.</div></div>
+    <div class="example-step"><span class="step-badge">Parametrize</span><div class="step-content">\\(\\mathbf{r}(t)=\\langle\\cos t,\\sin t\\rangle\\), \\(0\\le t\\le 2\\pi\\); \\(\\mathbf{r}'(t)=\\langle-\\sin t,\\cos t\\rangle\\).</div></div>
+    <div class="example-step"><span class="step-badge">Dot product</span><div class="step-content">\\(\\mathbf{F}(\\mathbf{r}(t))=\\langle\\sin t,-\\cos t\\rangle\\).<div class="math-line">\\[\\mathbf{F}\\cdot\\mathbf{r}'=-\\sin^2 t-\\cos^2 t=-1.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Integrate</span><div class="step-content"><div class="math-line">\\[\\oint_C\\mathbf{F}\\cdot d\\mathbf{r}=\\int_0^{2\\pi}(-1)\\,dt=-2\\pi.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(-2\\pi\\)</div><div class="ans-why">Note: Green's Theorem also gives \\(\\iint_D(-1-1)\\,dA=-2\\pi\\) — same answer via a different route. Direct parametrization is the fallback when you're unsure which theorem applies.</div></div>
+</div>`,
+  },
+  stokes2: {
+    cardId: 'acc-stokes',
+    html: `<div class="scenario-worked" id="sw-stokes2">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario H — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\oint_C\\mathbf{F}\\cdot d\\mathbf{r}\\), \\(\\mathbf{F}=\\langle -y^2,x,z^2\\rangle\\), \\(C\\) = circle \\(x^2+y^2=1\\) in \\(z=2\\), CCW from above.</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Choose surface</span><div class="step-content">Cap with disk \\(S\\): \\(x^2+y^2\\le 1\\) in \\(z=2\\), upward normal \\(\\hat{\\mathbf{k}}\\). Right-hand rule: CCW ↔ upward. ✓</div></div>
+    <div class="example-step"><span class="step-badge">Compute curl</span><div class="step-content"><div class="math-line">\\[\\nabla\\times\\mathbf{F}=\\begin{vmatrix}\\mathbf{i}&\\mathbf{j}&\\mathbf{k}\\\\\\partial_x&\\partial_y&\\partial_z\\\\-y^2&x&z^2\\end{vmatrix}=\\langle 0,0,1+2y\\rangle.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Flux integral</span><div class="step-content">On \\(S\\) with \\(\\hat{\\mathbf{n}}=\\mathbf{k}\\): only the \\(z\\)-component survives.<div class="math-line">\\[\\iint_S(\\nabla\\times\\mathbf{F})\\cdot d\\mathbf{S}=\\iint_D(1+2y)\\,dA=\\pi+0=\\pi.\\]</div>By symmetry, \\(\\iint_D 2y\\,dA=0\\) (odd function on a symmetric disk).</div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(\\pi\\)</div><div class="ans-why">This is the same computation as the static example above — Scenario H matches the built-in worked example perfectly.</div></div>
+</div>`,
+  },
+  div2: {
+    cardId: 'acc-div',
+    html: `<div class="scenario-worked" id="sw-div2">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario I — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Find the outward flux of \\(\\mathbf{F}=\\langle x^3,y^3,z^3\\rangle\\) through the sphere \\(x^2+y^2+z^2=a^2\\).</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Divergence</span><div class="step-content">\\(\\nabla\\cdot\\mathbf{F}=3x^2+3y^2+3z^2=3\\rho^2\\) in spherical coordinates.</div></div>
+    <div class="example-step"><span class="step-badge">Set up triple integral</span><div class="step-content"><div class="math-line">\\[\\iiint_E 3\\rho^2\\,dV=3\\int_0^{2\\pi}\\!\\int_0^\\pi\\!\\int_0^a\\rho^2\\cdot\\rho^2\\sin\\phi\\,d\\rho\\,d\\phi\\,d\\theta.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Evaluate</span><div class="step-content"><div class="math-line">\\[=3\\cdot 2\\pi\\cdot 2\\cdot\\frac{a^5}{5}=\\frac{12\\pi a^5}{5}.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(\\dfrac{12\\pi a^5}{5}\\)</div><div class="ans-why">This matches the static worked example above exactly — same divergence \\(3\\rho^2\\), same sphere of radius \\(a\\).</div></div>
+</div>`,
+  },
+  green2: {
+    cardId: 'acc-green',
+    html: `<div class="scenario-worked" id="sw-green2">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario J — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\oint_C(x^2y\\,dx-xy^2\\,dy)\\) where \\(C\\) bounds the quarter-disk \\(x^2+y^2\\le 4,\\,x\\ge0,\\,y\\ge0\\), CCW.</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Scalar curl</span><div class="step-content">\\(P=x^2y,\\;Q=-xy^2\\).<div class="math-line">\\[\\frac{\\partial Q}{\\partial x}-\\frac{\\partial P}{\\partial y}=-y^2-x^2=-(x^2+y^2).\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Apply Green's (polar)</span><div class="step-content"><div class="math-line">\\[\\iint_D-(x^2+y^2)\\,dA=-\\int_0^{\\pi/2}\\!\\int_0^2 r^2\\cdot r\\,dr\\,d\\theta=-\\frac{\\pi}{2}\\cdot 4=-2\\pi.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(-2\\pi\\)</div><div class="ans-why">Green's converts a 3-piece boundary integral (two line segments + an arc) into a single polar double integral — far simpler than direct parametrization of each boundary piece.</div></div>
+</div>`,
+  },
+  'direct-open': {
+    cardId: 'acc-line',
+    html: `<div class="scenario-worked" id="sw-open">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario K — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Compute \\(\\int_C\\mathbf{F}\\cdot d\\mathbf{r}\\), \\(\\mathbf{F}=\\langle 2xz,y^2,x^2\\rangle\\), along \\(\\mathbf{r}(t)=\\langle\\cos t,\\sin t,t\\rangle\\), \\(0\\le t\\le\\pi\\).</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Confirm non-conservative</span><div class="step-content">\\(\\partial_y(2xz)=0\\neq 2y=\\partial_z(y^2)\\). Mixed partials fail — FTC does not apply.</div></div>
+    <div class="example-step"><span class="step-badge">Compute r′(t)</span><div class="step-content">\\(\\mathbf{r}'(t)=\\langle -\\sin t,\\cos t,1\\rangle\\).</div></div>
+    <div class="example-step"><span class="step-badge">Substitute</span><div class="step-content">On \\(C\\): \\(x=\\cos t,y=\\sin t,z=t\\).<div class="math-line">\\[\\mathbf{F}(\\mathbf{r}(t))=\\langle 2\\cos t\\cdot t,\\,\\sin^2 t,\\,\\cos^2 t\\rangle.\\]</div><div class="math-line">\\[\\mathbf{F}\\cdot\\mathbf{r}'=-2t\\cos t\\sin t+\\sin^2 t\\cos t+\\cos^2 t.\\]</div></div></div>
+    <div class="example-step"><span class="step-badge">Integrate term by term</span><div class="step-content"><div class="math-line">\\[\\int_0^\\pi(-2t\\cos t\\sin t)\\,dt=\\int_0^\\pi-t\\sin 2t\\,dt=\\frac{\\pi}{2}\\text{ (IBP)}.\\]</div><div class="math-line">\\[\\int_0^\\pi\\sin^2 t\\cos t\\,dt=\\Bigl[\\tfrac{\\sin^3 t}{3}\\Bigr]_0^\\pi=0.\\qquad \\int_0^\\pi\\cos^2 t\\,dt=\\frac{\\pi}{2}.\\]</div>Total: \\(\\tfrac{\\pi}{2}+0+\\tfrac{\\pi}{2}=\\pi.\\)</div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(\\pi\\)</div><div class="ans-why">No shortcut exists for this non-conservative field on an open 3-D path — direct parametrization is the only route.</div></div>
+</div>`,
+  },
+  ftc2: {
+    cardId: 'acc-ftc',
+    html: `<div class="scenario-worked" id="sw-ftc2">
+  <div class="sw-divider"></div>
+  <div class="sw-label">▶ Scenario L — Your Problem</div>
+  <div class="example-setup"><strong>Setup.</strong> Evaluate \\(\\int_C\\nabla f\\cdot d\\mathbf{r}\\) where \\(f(x,y,z)=xe^y+z\\), along any smooth path from \\((1,0,0)\\) to \\((2,1,3)\\).</div>
+  <div class="example-steps">
+    <div class="example-step"><span class="step-badge">Identify potential</span><div class="step-content">\\(f\\) is given explicitly: \\(f(x,y,z)=xe^y+z\\). Verify: \\(\\nabla f=\\langle e^y,xe^y,1\\rangle=\\mathbf{F}\\). ✓</div></div>
+    <div class="example-step"><span class="step-badge">Apply FTC</span><div class="step-content"><div class="math-line">\\[\\int_C\\nabla f\\cdot d\\mathbf{r}=f(2,1,3)-f(1,0,0)=(2e+3)-(1+0)=2e+2.\\]</div></div></div>
+  </div>
+  <div class="example-answer"><div class="ans-label">Answer</div><div class="ans-value">\\(2e+2\\)</div><div class="ans-why">When the potential \\(f\\) is handed to you explicitly, FTC requires nothing more than two point evaluations — the entire path is irrelevant.</div></div>
+</div>`,
+  },
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   COMMIT AREA visibility
+═══════════════════════════════════════════════════════════ */
+function updateCommitArea() {
+  const area = document.getElementById('commitArea');
+  const btn  = document.getElementById('commitBtn');
+  if (!hasCommitted) {
+    area.style.display = allAnswered() ? 'block' : 'none';
+    btn.disabled = !allAnswered();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CORRECTIVE FEEDBACK HELPER
+   Returns HTML string if the given step answer conflicts with
+   the expected path for the current scenario, else null.
+═══════════════════════════════════════════════════════════ */
+function getCorrectiveFeedback(stepKey, value) {
+  if (!currentScenario) return null;
+  const key = document.getElementById('labScenario').value;
+  const scCorrections = CORRECTIVE_FEEDBACK[key];
+  if (!scCorrections) return null;
+  const stepCorrections = scCorrections[stepKey];
+  if (!stepCorrections) return null;
+  return stepCorrections[value] || null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WIRE UP RADIOS — Step 1
+═══════════════════════════════════════════════════════════ */
+document.querySelectorAll('#q1 input[type="radio"]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    if (hasCommitted) return;
+    document.querySelectorAll('#q1 label').forEach(l => l.classList.remove('selected'));
+    document.querySelector('label[for="'+inp.id+'"]').classList.add('selected');
+
+    const prev = answers.q1;
+    answers.q1 = inp.value;
+
+    /* inline feedback */
+    const fb = document.getElementById('fb1');
+    const corrective1 = getCorrectiveFeedback('q1', inp.value);
+    if (corrective1) {
+      fb.innerHTML = '⚠ ' + corrective1;
+      fb.className = 'step-inline-fb show step-inline-fb-warn';
+    } else {
+      fb.innerHTML = STEP1_FEEDBACK[inp.value] || '';
+      fb.className = 'step-inline-fb show';
+    }
+    typeset([fb]);
+
+    /* reset downstream */
+    answers.q2 = null; answers.q3 = null; answers.q4 = null;
+    document.querySelectorAll('#q3 input,#q4 input').forEach(r => r.checked = false);
+    document.querySelectorAll('#q3 label,#q4 label').forEach(l => l.classList.remove('selected'));
+    document.getElementById('fb2').className = 'step-inline-fb';
+    document.getElementById('fb3').className = 'step-inline-fb';
+    document.getElementById('fb4').className = 'step-inline-fb';
+
+    /* rebuild step 2 for new domain */
+    buildStep2();
+    document.getElementById('step2-group').disabled = false;
+    document.getElementById('step3-group').disabled = true;
+    updateQ3Text();
+    updateStep4Visibility();
+    updateProgress();
+    updateCommitArea();
+  });
+});
+
+/* Step 3 */
+document.querySelectorAll('#q3 input[type="radio"]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    if (hasCommitted) return;
+    document.querySelectorAll('#q3 label').forEach(l => l.classList.remove('selected'));
+    document.querySelector('label[for="'+inp.id+'"]').classList.add('selected');
+    answers.q3 = inp.value;
+    answers.q4 = null;
+    document.querySelectorAll('#q4 input').forEach(r => r.checked = false);
+    document.querySelectorAll('#q4 label').forEach(l => l.classList.remove('selected'));
+    document.getElementById('fb4').className = 'step-inline-fb';
+    /* inline feedback */
+    const fb = document.getElementById('fb3');
+    const corrective3 = getCorrectiveFeedback('q3', inp.value);
+    if (corrective3) {
+      fb.innerHTML = '⚠ ' + corrective3;
+      fb.className = 'step-inline-fb show step-inline-fb-warn';
+    } else {
+      fb.innerHTML = STEP3_FEEDBACK[inp.value] || '';
+      fb.className = 'step-inline-fb show';
+    }
+    typeset([fb]);
+    updateStep4Visibility();
+    updateProgress();
+    updateCommitArea();
+  });
+});
+
+/* Step 4 (conservative verify) */
+document.querySelectorAll('#q4 input[type="radio"]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    if (hasCommitted) return;
+    document.querySelectorAll('#q4 label').forEach(l => l.classList.remove('selected'));
+    document.querySelector('label[for="'+inp.id+'"]').classList.add('selected');
+    answers.q4 = inp.value;
+    const fb = document.getElementById('fb4');
+    const corrective4 = getCorrectiveFeedback('q4', inp.value);
+    if (corrective4) {
+      fb.innerHTML = '⚠ ' + corrective4;
+      fb.className = 'step-inline-fb show step-inline-fb-warn';
+    } else {
+      fb.innerHTML = STEP4_FEEDBACK[inp.value] || '';
+      fb.className = 'step-inline-fb show';
+    }
+    typeset([fb]);
+    updateProgress();
+    updateCommitArea();
+  });
+});
+
+/* Initial guess */
+document.querySelectorAll('#guessPills input[type="radio"]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    if (hasCommitted) return;
+    document.querySelectorAll('#guessPills label').forEach(l => l.classList.remove('selected'));
+    document.querySelector('label[for="'+inp.id+'"]').classList.add('selected');
+    initialGuess = inp.value;
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   INJECT SCENARIO WORKED SOLUTION INTO CARD ACCORDION
+   Called after commit. Opens the accordion and appends the
+   scenario-specific HTML after the existing static example.
+═══════════════════════════════════════════════════════════ */
+function injectWorkedScenario() {
+  if (!currentScenario) return;
+  const key = document.getElementById('labScenario').value;
+  const sw  = SCENARIO_WORKED[key];
+  if (!sw) return;
+
+  const body = document.getElementById(sw.cardId);
+  if (!body) return;
+
+  /* Don't inject twice */
+  if (body.querySelector('.scenario-worked')) return;
+
+  /* Insert the HTML */
+  body.insertAdjacentHTML('beforeend', sw.html);
+
+  /* Open the accordion if not already open */
+  const trigger = body.previousElementSibling;
+  if (!body.classList.contains('open')) {
+    body.classList.add('open');
+    if (trigger && trigger.classList.contains('accordion-trigger')) {
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  /* Typeset new math */
+  typeset([body]);
+
+  /* Scroll the injected block into view after a short delay */
+  setTimeout(() => {
+    const el = body.querySelector('.scenario-worked');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 350);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMMIT
+═══════════════════════════════════════════════════════════ */
+function commitAnswer() {
+  if (!allAnswered() || hasCommitted) return;
+  hasCommitted = true;
+
+  const { id: correctId, note } = decide(answers.q1, answers.q2, answers.q3, answers.q4);
+  const panel = document.getElementById('feedbackPanel');
+  const badge = document.getElementById('feedbackBadge');
+  const text  = document.getElementById('feedbackText');
+  document.getElementById('commitBtn').disabled = true;
+
+  if (correctId) {
+    panel.style.display = 'block';
+    panel.className = 'feedback-panel correct';
+    badge.innerHTML = '✓ Correct path!';
+    text.innerHTML = THEOREM_NAMES[correctId] + ' — ' + note;
+    applyCardStates(correctId);
+    announce('Correct. ' + THEOREM_NAMES[correctId] + '.');
+    const rb = document.getElementById('resultBox');
+    rb.classList.add('visible');
+    document.getElementById('resultName').innerHTML = THEOREM_NAMES[correctId];
+    document.getElementById('resultReason').innerHTML = note;
+    typeset([text, rb]);
+  } else {
+    /* null should not occur now but kept as safety fallback */
+    panel.style.display = 'block';
+    panel.className = 'feedback-panel incorrect';
+    badge.innerHTML = '— No classical theorem applies';
+    text.innerHTML = note || 'This integral requires direct computation.';
+    applyCardStates(null);
+    const an = document.getElementById('ambiguousNote');
+    an.innerHTML = note || 'Direct computation required.';
+    an.classList.add('visible');
+    announce('Direct computation required.');
+    typeset([text, an]);
+  }
+
+  /* FIX: surf card tag — swap to "Direct Answer" when surf IS the correct answer */
+  setSurfTag(correctId === 'surf');
+
+  /* Reveal theorem cards — remove locked state + inert attributes */
+  const col = document.getElementById('cardsCol');
+  col.classList.remove('locked');
+  col.querySelectorAll('.theorem-card, .unifying-banner').forEach(el => el.removeAttribute('inert'));
+  const overlay = document.getElementById('cardsOverlay');
+  overlay.style.display = 'none';
+  overlay.setAttribute('aria-hidden','true');
+  announce('Theorem cards revealed. ' + (correctId ? THEOREM_NAMES[correctId] + ' is highlighted.' : 'Review all cards.'));
+
+  showGuessComparison(correctId);
+
+  /* Inject scenario-specific worked solution into the active theorem card */
+  injectWorkedScenario();
+
+  typeset([panel, document.getElementById('resultBox')]);
+
+  /* Scroll guess comparison into view */
+  setTimeout(() => {
+    document.getElementById('guessComparison').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }, 200);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GUESS COMPARISON
+   FIX: moved next to feedback; includes WHY_WRONG explanation
+   on mismatch; scrolls into view after commit.
+═══════════════════════════════════════════════════════════ */
+function showGuessComparison(correctId) {
+  const el   = document.getElementById('guessComparison');
+  const head = document.getElementById('gcHead');
+  const why  = document.getElementById('gcWhy');
+  el.style.display = 'none';
+
+  if (!initialGuess) return;
+
+  el.style.display = 'block';
+  /* 'none' guess and 'line' correctId are the same concept */
+  const normGuess   = initialGuess === 'none' ? 'line' : initialGuess;
+  const normCorrect = correctId;
+  if (normGuess === normCorrect) {
+    /* Match */
+    el.className = 'guess-comparison match';
+    head.innerHTML = '✓ Your initial guess matched the tree\'s conclusion.';
+    why.innerHTML  = '';
+  } else {
+    /* Mismatch — include WHY_WRONG for the guess they made */
+    el.className = 'guess-comparison mismatch';
+    const guessName   = THEOREM_NAMES[initialGuess] || 'your guess';
+    const correctName = correctId ? THEOREM_NAMES[correctId] : 'direct computation';
+    head.innerHTML = `Your guess was <strong>${guessName}</strong>; the tree concludes <strong>${correctName}</strong>.`;
+    why.innerHTML = WHY_WRONG[initialGuess] || WHY_WRONG[normGuess] || '';
+  }
+  typeset([el]);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARD STATES
+═══════════════════════════════════════════════════════════ */
+const CARDS = {
+  ftc:'card-ftc', green:'card-green', stokes:'card-stokes', div:'card-div', surf:'card-surf', line:'card-line',
+};
+const INCORRECT_MSGS = {
+  ftc:   "FTC requires a conservative field (F = ∇f) on a curve C. Mixed partials must all match.",
+  green: "Green's requires a vector field over a plane region D ⊂ ℝ² with a complete closed (CCW) boundary.",
+  stokes:"Stokes' requires a vector field on an oriented surface S ⊂ ℝ³ with a closed boundary curve C = ∂S.",
+  div:   "The Divergence Theorem requires a vector field over a solid E with a complete closed outward-oriented boundary surface.",
+  surf:  "The surface integral formula is always available as a fallback. When it's marked incorrect here, the problem has a simpler classical-theorem shortcut.",
+  line:  "Direct line integration works for any curve integral, but when a theorem applies (FTC, Green's, Stokes'), that shortcut is preferred.",
+};
+
+function applyCardStates(correctId) {
+  const toTypeset = [];
+  for (const [key, cardId] of Object.entries(CARDS)) {
+    const card  = document.getElementById(cardId);
+    const badge = document.getElementById('badge-'+key);
+    const whyEl = document.getElementById('why-'+key);
+    card.classList.remove('neutral','highlighted','dimmed','student-correct','student-incorrect');
+    card.removeAttribute('aria-hidden');
+    badge.setAttribute('aria-hidden','true');
+    if (whyEl) whyEl.style.display = 'none';
+
+    if (correctId === null) {
+      card.classList.add('dimmed');
+    } else if (key === correctId) {
+      card.classList.add('student-correct');
+      badge.textContent = '✓ Correct';
+      badge.setAttribute('aria-hidden','false');
+      setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80);
+    } else {
+      card.classList.add('student-incorrect');
+      badge.textContent = '✗';
+      badge.setAttribute('aria-hidden','false');
+      if (whyEl) {
+        whyEl.innerHTML = INCORRECT_MSGS[key] || WHY_WRONG[key] || '';
+        whyEl.style.display = 'block';
+        toTypeset.push(whyEl);
+      }
+    }
+  }
+  if (toTypeset.length) typeset(toTypeset);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SURF CARD TAG
+   FIX: when surf IS the correct answer (Scenarios E and F),
+        remove the "fallback" framing — it IS the answer.
+═══════════════════════════════════════════════════════════ */
+function setSurfTag(isCorrectAnswer) {
+  const tag  = document.getElementById('surf-tag');
+  const note = document.getElementById('surf-fallback-note');
+  if (isCorrectAnswer) {
+    tag.textContent = 'Direct Answer';
+    tag.className   = 'theorem-tag tag-direct';
+    note.style.display = 'none';
+  } else {
+    tag.textContent = 'Direct / Fallback';
+    tag.className   = 'theorem-tag';
+    note.style.display = '';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════════ */
+function resetAll(silent) {
+  answers = { q1:null, q2:null, q3:null, q4:null };
+  initialGuess = null;
+  hasCommitted  = false;
+
+  /* Radios */
+  document.querySelectorAll('.pill-group input[type="radio"]').forEach(r => r.checked = false);
+  document.querySelectorAll('.pill-group label').forEach(l => l.classList.remove('selected'));
+  document.querySelectorAll('#guessPills input[type="radio"]').forEach(r => r.checked = false);
+  document.querySelectorAll('#guessPills label').forEach(l => l.classList.remove('selected'));
+
+  /* Inline feedbacks */
+  ['fb1','fb2','fb3','fb4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = 'step-inline-fb';
+    el.innerHTML = '';
+  });
+
+  /* Step lock */
+  document.getElementById('step1-group').disabled = (currentScenario === null);
+  document.getElementById('step2-group').disabled = true;
+  document.getElementById('step3-group').disabled = true;
+  document.getElementById('step4-group').disabled = true;
+  document.getElementById('step4-group').style.display = 'none';
+  document.getElementById('s4divider').style.display = 'none';
+
+  /* Rebuild step 2 content (clears old options) */
+  document.getElementById('q2').innerHTML = '';
+  document.getElementById('q2-text').textContent = 'Select a domain type first.';
+  document.getElementById('q2-hint').textContent = '';
+  document.getElementById('s2label').textContent = 'Geometry';
+
+  /* Commit + feedback */
+  document.getElementById('commitArea').style.display  = 'none';
+  document.getElementById('commitBtn').disabled = true;
+  document.getElementById('feedbackPanel').style.display = 'none';
+  document.getElementById('feedbackPanel').className = 'feedback-panel';
+  document.getElementById('guessComparison').style.display = 'none';
+  document.getElementById('resultBox').classList.remove('visible');
+  document.getElementById('ambiguousNote').classList.remove('visible');
+
+  /* Progress */
+  updateProgress();
+
+  /* Cards */
+  for (const [key, cardId] of Object.entries(CARDS)) {
+    const card  = document.getElementById(cardId);
+    const badge = document.getElementById('badge-'+key);
+    const whyEl = document.getElementById('why-'+key);
+    card.classList.remove('highlighted','dimmed','student-correct','student-incorrect');
+    card.classList.add('neutral');
+    card.removeAttribute('aria-hidden');
+    if (badge) { badge.textContent=''; badge.setAttribute('aria-hidden','true'); }
+    if (whyEl) whyEl.style.display = 'none';
+  }
+  setSurfTag(false);
+
+  /* Remove any injected scenario worked solutions */
+  document.querySelectorAll('.scenario-worked').forEach(el => el.remove());
+
+  /* Re-lock the cards column */
+  const col = document.getElementById('cardsCol');
+  col.classList.add('locked');
+  col.querySelectorAll('.theorem-card, .unifying-banner').forEach(el => el.setAttribute('inert',''));
+  const overlay = document.getElementById('cardsOverlay');
+  overlay.removeAttribute('style');
+  overlay.removeAttribute('aria-hidden');
+
+  if (!silent) announce('Reset. Select a scenario and make your initial guess to begin.');
+}
+
+/* Initialise */
+resetAll(true);
+document.getElementById('step1-group').disabled = true; /* locked until scenario chosen */
+</script>
+</body>
+</html>

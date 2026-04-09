@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MA261: Advanced Lab & Dynamic Quiz</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root { --purdue: #ceb888; --dark: #1a1a1a; --u-col: #29b6f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: #f0f0f0; }
+        .sidebar { width: 440px; background: white; border-right: 2px solid #ddd; padding: 20px; overflow-y: auto; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .main { flex-grow: 1; position: relative; background: #fff; }
+        header { border-bottom: 4px solid var(--purdue); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 1.1rem; margin: 0; color: var(--dark); }
+        .panel { background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
+        .quiz-panel { background: #fffde7; border: 2px solid #fbc02d; padding: 12px; border-radius: 8px; margin-bottom: 10px; min-height: 240px; }
+        .data-panel { background: var(--dark); color: #00e676; padding: 12px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+        button { padding: 10px; cursor: pointer; font-weight: bold; border: none; border-radius: 4px; transition: 0.2s; margin: 2px; }
+        .btn-main { background: var(--purdue); color: black; width: 48%; }
+        .btn-reset { background: #d32f2f; color: white; width: auto; padding: 5px 10px; }
+        .btn-confirm { background: #fbc02d; color: #333; width: 100%; margin-top: 8px; }
+        .btn-download { background: #2e7d32; color: white; width: 100%; margin-top: 10px; }
+        .layer-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.75rem; }
+        .layer-toggle label { display: flex; align-items: center; background: #eee; padding: 4px; border-radius: 4px; cursor: pointer; }
+        textarea { width: 100%; height: 45px; margin-top: 5px; font-family: inherit; font-size: 0.8rem; border: 1px solid #ccc; border-radius: 4px; resize: none; }
+        #plot { width: 100%; height: 100%; }
+        .feedback { font-weight: bold; font-size: 0.85rem; margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <header>
+        <h1>Exploring Derivatives of f(x,y)</h1>
+        <button class="btn-reset" onclick="resetLab()">Reset</button>
+    </header>
+    
+    <div style="display:flex; justify-content: space-between;">
+        <button class="btn-main" onclick="toggleMode()">2D/3D View</button>
+        <button class="btn-main" id="ascentBtn" onclick="toggleAscent()" style="background:#222; color:var(--purdue)">Run Ascent</button>
+    </div>
+
+    <div class="panel">
+        <label><b>Surface Selection</b></label>
+        <select id="funcType" onchange="updateUI()" style="width:100%; padding:5px; margin-top:5px;">
+            <option value="p">Paraboloid: x² + y²</option>
+            <option value="s">Saddle: x² - y²</option>
+            <option value="sc">Wave: sin(x)cos(y)</option>
+            <option value="exp">Radial Exp: e^-sqrt(x²+y²)</option>
+            <option value="custom">-- Custom Function --</option>
+        </select>
+        <div id="customBox" style="display:none; margin-top:5px;">
+            <input type="text" id="customInput" value="Math.sin(x*y)">
+            <button onclick="updateUI()" style="background:#4caf50; color:white; width:100%;">Apply</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label><b>Visibility Layers</b></label>
+        <div class="layer-toggle">
+            <label><input type="checkbox" id="shX" checked onchange="update()"> X-Trace (fₓ)</label>
+            <label><input type="checkbox" id="shY" checked onchange="update()"> Y-Trace (fᵧ)</label>
+            <label><input type="checkbox" id="shP" checked onchange="update()"> Tangent Plane</label>
+            <label><input type="checkbox" id="shG" checked onchange="update()"> Gradient ∇f</label>
+            <label><input type="checkbox" id="shT" checked onchange="update()"> Level Tangent</label>
+            <label><input type="checkbox" id="shPath" checked onchange="update()"> Path History</label>
+            <label style="grid-column: span 2; background: #e3f2fd; border: 1px solid #29b6f6;"><input type="checkbox" id="shDir" checked onchange="update()"> Direction Vector (u)</label>
+        </div>
+    </div>
+
+    <div class="data-panel" id="stats">
+        ∇f = <span id="gradText">⟨0, 0⟩</span><br>
+        <span style="color:var(--u-col)">u = ⟨cosθ, sinθ⟩ | Dᵤf = <span id="duValText">0</span></span><br>
+        z = <span id="zValText">0</span> | θ = <span id="thetaText">45</span>°
+    </div>
+
+    <div class="quiz-panel">
+        <label><b>Quiz Question #<span id="displayNum">1</span></b></label>
+        <div id="quizContainer" style="font-size: 0.85rem; margin-top: 8px;">
+            <div id="moveAlert" style="display:none; color: #d32f2f; font-weight: bold; border: 1px dashed red; padding: 5px; margin-bottom: 5px;">
+                MOVE REQUIRED: Change your coordinates to unlock the next set.
+            </div>
+            <p id="quizQuestionText">Select a point to begin.</p>
+            <div id="quizOptions"></div>
+            <button class="btn-confirm" id="quizActionBtn" onclick="handleQuizAction()">Confirm Answer</button>
+            <div id="quizFeedback" class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label><b>Conceptual Reflections</b></label>
+        <p style="font-size:0.75rem; margin:5px 0 2px 0;">1. How does the steepness of the Tangent Plane relate to the magnitude |∇f|?</p>
+        <textarea id="reflector1"></textarea>
+        
+        <p style="font-size:0.75rem; margin:8px 0 2px 0;">2. Why is the Directional Derivative zero when u is tangent to a level curve?</p>
+        <textarea id="reflector2"></textarea>
+
+        <p style="font-size:0.75rem; margin:8px 0 2px 0;"><b>General Lab Summary:</b></p>
+        <textarea id="summaryText" placeholder="Summary of findings..."></textarea>
+        
+        <button class="btn-download" onclick="downloadReport()">Download Lab Report</button>
+    </div>
+
+    <div class="panel">
+        <label><b>Input Parameters</b></label>
+        X₀: <input type="range" id="rx" min="-2" max="2" step="0.1" value="0.5" oninput="manualMove()">
+        Y₀: <input type="range" id="ry" min="-2" max="2" step="0.1" value="0.5" oninput="manualMove()">
+        θ: <input type="range" id="theta" min="0" max="360" step="5" value="45" oninput="update()">
+    </div>
+</aside>
+
+<main class="main"><div id="plot"></div></main>
+
+<script>
+let is3D = true, x0 = 0.5, y0 = 0.5, isAscending = false;
+let pathX = [0.5], pathY = [0.5], pathZ = [];
+let currentF = (x,y) => x*x + y*y;
+
+// Quiz Logic State
+let qNumber = 1;
+let batchCount = 0; 
+let isWaitingForMove = false;
+let labHistory = [];
+let lastX = 0.5, lastY = 0.5;
+let currentCorrectKey = "";
+
+function renderQuestion() {
+    const feedback = document.getElementById('quizFeedback');
+    const moveAlert = document.getElementById('moveAlert');
+    const btn = document.getElementById('quizActionBtn');
+    const qText = document.getElementById('quizQuestionText');
+    const qOpts = document.getElementById('quizOptions');
+    
+    document.getElementById('displayNum').innerText = qNumber;
+    feedback.innerText = "";
+    
+    if (isWaitingForMove) {
+        moveAlert.style.display = "block";
+        qText.innerText = "The surface data has been analyzed for this point. Please move to a new (x,y) location to unlock Question #" + qNumber + ".";
+        qOpts.innerHTML = "";
+        btn.innerText = "Validate New Position";
+        return;
+    }
+
+    moveAlert.style.display = "none";
+    btn.innerText = "Confirm Answer";
+
+    // Dynamic question logic based on current point (x0, y0)
+    const h = 0.001;
+    const fx = (currentF(x0+h, y0) - currentF(x0-h, y0))/(2*h);
+    const fy = (currentF(x0, y0+h) - currentF(x0, y0-h))/(2*h);
+    const deg = parseFloat(document.getElementById('theta').value), rad = deg * Math.PI / 180;
+    const du = fx * Math.cos(rad) + fy * Math.sin(rad);
+
+    // Pick a question type based on batch count
+    if (batchCount === 0) {
+        qText.innerText = `At your current point (${x0.toFixed(1)}, ${y0.toFixed(1)}), is the partial derivative f_x positive or negative?`;
+        currentCorrectKey = (fx >= 0) ? "pos" : "neg";
+        qOpts.innerHTML = `
+            <label><input type="radio" name="q" value="pos"> Positive (Increasing in x)</label><br>
+            <label><input type="radio" name="q" value="neg"> Negative (Decreasing in x)</label>`;
+    } else if (batchCount === 1) {
+        qText.innerText = `Look at the Direction Vector (blue). Currently, your D_u f is ${du.toFixed(2)}. This means moving in direction θ will lead you:`;
+        currentCorrectKey = (du > 0.05) ? "up" : (du < -0.05 ? "down" : "flat");
+        qOpts.innerHTML = `
+            <label><input type="radio" name="q" value="up"> Uphill (Altitude increases)</label><br>
+            <label><input type="radio" name="q" value="down"> Downhill (Altitude decreases)</label><br>
+            <label><input type="radio" name="q" value="flat"> Roughly along a level curve</label>`;
+    }
+}
+
+function handleQuizAction() {
+    if (isWaitingForMove) {
+        // Check if user actually moved
+        const dist = Math.sqrt(Math.pow(x0 - lastX, 2) + Math.pow(y0 - lastY, 2));
+        if (dist > 0.4) {
+            isWaitingForMove = false;
+            batchCount = 0;
+            renderQuestion();
+        } else {
+            document.getElementById('quizFeedback').innerText = "Try moving a bit further away!";
+            document.getElementById('quizFeedback').style.color = "orange";
+        }
+        return;
+    }
+
+    const selected = document.querySelector('input[name="q"]:checked');
+    if (!selected) return;
+
+    const feedback = document.getElementById('quizFeedback');
+    if (selected.value === currentCorrectKey) {
+        feedback.innerText = "Correct Analysis!";
+        feedback.style.color = "green";
+        labHistory.push(`Q${qNumber}: Correct`);
+    } else {
+        feedback.innerText = "Incorrect. Observe the trace lines or vector values.";
+        feedback.style.color = "red";
+        labHistory.push(`Q${qNumber}: Incorrect`);
+    }
+
+    qNumber++;
+    batchCount++;
+
+    setTimeout(() => {
+        if (batchCount >= 2) {
+            isWaitingForMove = true;
+            lastX = x0; lastY = y0;
+        }
+        renderQuestion();
+    }, 1200);
+}
+
+// Visuals & Math
+function manualMove() {
+    x0 = parseFloat(document.getElementById('rx').value);
+    y0 = parseFloat(document.getElementById('ry').value);
+    pathX = [x0]; pathY = [y0]; pathZ = [currentF(x0,y0)];
+    update();
+}
+
+function updateUI() {
+    const type = document.getElementById('funcType').value;
+    document.getElementById('customBox').style.display = (type === 'custom') ? 'block' : 'none';
+    if(type === 'p') currentF = (x,y) => x*x + y*y;
+    else if(type === 's') currentF = (x,y) => x*x - y*y;
+    else if(type === 'sc') currentF = (x,y) => Math.sin(x) * Math.cos(y);
+    else if(type === 'exp') currentF = (x,y) => Math.exp(-Math.sqrt(x*x + y*y));
+    else if(type === 'custom') {
+        try { currentF = new Function('x', 'y', `return ${document.getElementById('customInput').value};`); } catch(e) {}
+    }
+    update();
+}
+
+function resetLab() {
+    x0 = 0.5; y0 = 0.5; pathX = [0.5]; pathY = [0.5];
+    qNumber = 1; batchCount = 0; isWaitingForMove = false;
+    labHistory = [];
+    document.getElementById('reflector1').value = "";
+    document.getElementById('reflector2').value = "";
+    document.getElementById('summaryText').value = "";
+    renderQuestion();
+    update();
+}
+
+function toggleMode() { is3D = !is3D; update(); }
+
+function toggleAscent() {
+    isAscending = !isAscending;
+    document.getElementById('ascentBtn').innerText = isAscending ? "Stop Ascent" : "Run Ascent";
+    if(isAscending) runAscent();
+}
+
+function runAscent() {
+    if(!isAscending) return;
+    const h = 0.001;
+    const fx = (currentF(x0+h, y0) - currentF(x0-h, y0))/(2*h);
+    const fy = (currentF(x0, y0+h) - currentF(x0, y0-h))/(2*h);
+    x0 += fx * 0.05; y0 += fy * 0.05;
+    pathX.push(x0); pathY.push(y0); pathZ.push(currentF(x0,y0));
+    update();
+    if(Math.abs(fx) > 0.01 || Math.abs(fy) > 0.01) setTimeout(runAscent, 40);
+    else toggleAscent();
+}
+
+function update() {
+    const deg = parseFloat(document.getElementById('theta').value), rad = deg * Math.PI / 180;
+    const ux = Math.cos(rad), uy = Math.sin(rad), h = 0.001;
+    const fx = (currentF(x0+h, y0) - currentF(x0-h, y0))/(2*h);
+    const fy = (currentF(x0, y0+h) - currentF(x0, y0-h))/(2*h);
+    const z0 = currentF(x0, y0);
+    const du = fx * ux + fy * uy;
+
+    document.getElementById('gradText').innerText = `⟨${fx.toFixed(2)}, ${fy.toFixed(2)}⟩`;
+    document.getElementById('duValText').innerText = du.toFixed(2);
+    document.getElementById('zValText').innerText = z0.toFixed(2);
+    document.getElementById('thetaText').innerText = deg;
+
+    const range = Array.from({length: 40}, (_, i) => -2.2 + i * 0.11);
+    const zData = range.map(y => range.map(x => currentF(x, y)));
+    const traces = [];
+
+    if(is3D) {
+        traces.push({ z: zData, x: range, y: range, type: 'surface', opacity: 0.5, colorscale: 'Viridis', showscale: false });
+        if(document.getElementById('shP').checked) {
+            const pS = 0.7; const px = [x0-pS, x0+pS], py = [y0-pS, y0+pS];
+            traces.push({ x: px, y: py, z: py.map(y => px.map(x => z0 + fx*(x-x0) + fy*(y-y0))), type: 'surface', opacity: 0.7, colorscale: [[0, '#ceb888'], [1, '#ceb888']], showscale: false });
+        }
+        if(document.getElementById('shX').checked) traces.push({ x: range, y: range.map(()=>y0), z: range.map(x => currentF(x, y0)), type: 'scatter3d', mode: 'lines', line: {color: 'red', width: 4} });
+        if(document.getElementById('shY').checked) traces.push({ x: range.map(()=>x0), y: range, z: range.map(y => currentF(x0, y)), type: 'scatter3d', mode: 'lines', line: {color: 'green', width: 4} });
+        if(document.getElementById('shPath').checked) traces.push({ x: pathX, y: pathY, z: pathZ, type: 'scatter3d', mode: 'lines', line: {color: 'black', width: 5} });
+        if(document.getElementById('shDir').checked) {
+             const dR = Array.from({length: 15}, (_, i) => -0.7 + i * 0.1);
+             traces.push({ x: dR.map(t => x0 + t*ux), y: dR.map(t => y0 + t*uy), z: dR.map(t => currentF(x0+t*ux, y0+t*uy)), type: 'scatter3d', mode: 'lines', line: {color: '#29b6f6', width: 6} });
+        }
+    } else {
+        traces.push({ z: zData, x: range, y: range, type: 'contour', colorscale: 'Viridis', showscale: false, contours: { coloring: 'heatmap' } });
+        if(document.getElementById('shG').checked) traces.push({ x: [x0, x0 + fx*0.3], y: [y0, y0 + fy*0.3], mode: 'lines+markers', line: {color: 'white', width: 4}, marker: {symbol: 'arrow', size: 10} });
+        if(document.getElementById('shT').checked) traces.push({ x: [x0, x0 - fy*0.3], y: [y0, y0 + fx*0.3], mode: 'lines+markers', line: {color: '#ffa726', width: 4}, marker: {symbol: 'arrow', size: 10} });
+        if(document.getElementById('shDir').checked) traces.push({ x: [x0, x0 + ux*0.5], y: [y0, y0 + uy*0.5], mode: 'lines+markers', line: {color: '#29b6f6', width: 5}, marker: {symbol: 'arrow', size: 12} });
+        if(document.getElementById('shPath').checked) traces.push({ x: pathX, y: pathY, mode: 'lines', line: {color: 'black', width: 3} });
+    }
+    traces.push({ x: [x0], y: [y0], z: is3D ? [z0] : undefined, type: is3D ? 'scatter3d' : 'scatter', mode: 'markers', marker: {size: 8, color: 'white', line: {width: 2, color: 'black'}} });
+
+    Plotly.newPlot('plot', traces, { 
+        scene: { xaxis:{range:[-2.2,2.2]}, yaxis:{range:[-2.2,2.2]}, zaxis:{range:[-4,4]}, aspectratio:{x:1,y:1,z:0.8} }, 
+        margin:{l:0,r:0,b:0,t:0}, showlegend:false 
+    }).then(gd => {
+        gd.on('plotly_click', (d) => { 
+            x0 = d.points[0].x; y0 = d.points[0].y; 
+            pathX = [x0]; pathY = [y0]; pathZ = [currentF(x0,y0)];
+            document.getElementById('rx').value = x0; document.getElementById('ry').value = y0; 
+            update(); 
+        });
+    });
+}
+
+function downloadReport() {
+    const r1 = document.getElementById('reflector1').value;
+    const r2 = document.getElementById('reflector2').value;
+    const sum = document.getElementById('summaryText').value;
+    const text = `MA261 Lab Report\nQuestions Answered: ${qNumber-1}\nHistory:\n${labHistory.join('\n')}\n\nReflection 1 (Steepness & Grad):\n${r1}\n\nReflection 2 (Zero Derivative):\n${r2}\n\nFinal Summary:\n${sum}`;
+    const blob = new Blob([text], {type: "text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "lab_report.txt";
+    a.click();
+}
+
+updateUI();
+renderQuestion();
+</script>
+</body>
+</html>
