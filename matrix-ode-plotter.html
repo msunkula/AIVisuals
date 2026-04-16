@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matrix ODE Trajectory Plotter</title>
+<style>
+  /* ── Design tokens ── */
+  :root {
+    --bg:        #eef1f7;
+    --surface:   #f5f7fc;
+    --surface2:  #dde3f0;
+    --border:    rgba(30,41,59,0.14);
+    --accent:    #2d5bb9;
+    --accent2:   #b91c1c;
+    --accent3:   #0d9488;
+    --orange:    #b45309;
+    --text:      #0f172a;
+    --text-muted:#4a5878;
+    --radius:    8px;
+    --focus-ring:0 0 0 3px rgba(45,91,185,0.20);
+    font-family: 'Courier New', Courier, monospace;
+    color-scheme: light;
+  }
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+
+  /* ── WCAG focus styles ── */
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius); }
+  a:focus-visible { border-radius: 2px; }
+
+  /* ── Skip link ── */
+  .skip-link {
+    position: absolute; top: -999px; left: 8px; z-index: 9999;
+    background: var(--accent); color: #fff; padding: 8px 16px;
+    border-radius: var(--radius); font-weight: 700; text-decoration: none;
+    transition: top .1s;
+  }
+  .skip-link:focus { top: 8px; }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    /* solution row is auto-sized to its card content */
+    grid-template-areas: "header header" "panel canvas" "panel solution" "status status";
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    grid-area: header;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--text); }
+  header h1 span { color: var(--accent); }
+  .badge {
+    font-size: .7rem; padding: 2px 8px; border-radius: 100px;
+    background: rgba(45,91,185,0.10); color: var(--accent);
+    border: 1px solid rgba(45,91,185,0.35); letter-spacing: .04em; font-weight: 700;
+  }
+
+  /* ── Solution bar ── */
+  .solution-bar {
+    grid-area: solution;
+    background: transparent;
+    padding: 10px 16px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+    font-family: 'Courier New', monospace;
+  }
+  .solution-bar-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 18px;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.07);
+  }
+  .solution-bar-row {
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .solution-bar-label {
+    font-size: .7rem; font-weight: 700; letter-spacing: .08em;
+    color: var(--accent); text-transform: uppercase; white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .solution-bar-inner #solution-display {
+    display: flex; align-items: center; gap: 4px;
+    flex-wrap: wrap;
+  }
+  #solution-note {
+    font-size: .7rem; color: var(--text-muted);
+    font-family: 'Courier New', monospace;
+    white-space: normal; overflow-x: visible;
+    padding-bottom: 2px;
+  }
+
+
+  aside {
+    grid-area: panel;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  fieldset {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  legend {
+    font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+    color: var(--accent); text-transform: uppercase;
+    padding: 0 6px;
+  }
+
+  /* ── Matrix input grid ── */
+  .matrix-wrap {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 12px;
+  }
+  .bracket { display: flex; align-items: center; color: var(--text-muted); user-select: none; }
+  .bracket svg { width: 12px; height: 88px; }
+  .matrix-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .matrix-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--text-muted); }
+  .matrix-grid input {
+    width: 72px; padding: 7px 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: inherit; font-size: .95rem; text-align: center;
+    transition: border-color .15s;
+  }
+  .matrix-grid input:hover { border-color: #b0bbd8; }
+  .matrix-grid input:focus-visible { border-color: var(--accent); box-shadow: var(--focus-ring); outline: none; }
+  /* Hide number input spinners */
+  .matrix-grid input[type=number]::-webkit-inner-spin-button,
+  .matrix-grid input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .matrix-grid input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+  #view-range::-webkit-inner-spin-button,
+  #view-range::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  #view-range { -moz-appearance: textfield; appearance: textfield; }
+
+  /* ── Generic form controls ── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: .75rem; color: var(--text-muted); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .field input[type="number"],
+  .field input[type="range"],
+  .field select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: inherit;
+    font-size: .9rem; padding: 7px 10px;
+    transition: border-color .15s;
+  }
+  .field input[type="number"]:focus-visible,
+  .field select:focus-visible { border-color: var(--accent); box-shadow: var(--focus-ring); outline: none; }
+  .field input[type="range"] { padding: 0; border: none; accent-color: var(--accent); cursor: pointer; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── Eigenvalue display ── */
+  .eigen-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px;
+    font-size: .82rem; font-family: 'Courier New', monospace;
+    min-height: 52px;
+  }
+  .eigen-box .lam { color: var(--accent); }
+  .eigen-box .stable { color: var(--accent3); }
+  .eigen-box .unstable { color: var(--accent2); }
+  .eigen-box .neutral { color: #b45309; }
+
+  /* ── Solution note (inside bar) ── */
+  .sol-note {
+    font-size: .7rem; color: var(--text-muted);
+    margin-left: 12px; padding-left: 12px;
+    border-left: 1px solid var(--border);
+    line-height: 1.5; white-space: normal; flex-shrink: 1;
+  }
+  .sol-term { display: inline-flex; align-items: center; gap: 4px; }
+  .sol-plus { color: var(--text-muted); margin: 0 4px; }
+  .sol-c { color: var(--accent); font-weight: 700; }
+  .sol-exp { font-size: .8rem; }
+  .sol-vec-wrap { display: inline-flex; align-items: stretch; gap: 1px; }
+  .sol-bracket {
+    display: flex; align-items: center;
+    color: var(--text-muted); font-size: 2.2em; line-height: 1;
+    font-weight: 200; user-select: none;
+  }
+  .sol-vec-entries {
+    display: flex; flex-direction: column;
+    justify-content: center; gap: 1px; color: var(--text-muted);
+  }
+  .sol-vec-entries span { display: block; text-align: center; font-size: .78rem; }
+  .sol-trig { color: var(--text); }
+
+  /* ── Origin type box ── */
+  .origin-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 9px 12px;
+  }
+  .origin-label {
+    font-size: .92rem; font-weight: 700; letter-spacing: .02em;
+    transition: color .2s;
+  }
+  .origin-box.stable   .origin-label { color: var(--accent3); }
+  .origin-box.unstable .origin-label { color: var(--accent3); }
+  .origin-box.neutral  .origin-label { color: var(--accent3); }
+  .origin-box.saddle   .origin-label { color: var(--accent3); }
+
+  /* ── Action buttons ── */
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; min-width: 80px; padding: 9px 14px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface2); color: var(--text);
+    font-family: inherit; font-size: .85rem; cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn:hover { background: #d4daf0; border-color: #b0bbd8; }
+  .btn:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+  .btn.active { background: var(--surface2); border-color: var(--accent); color: var(--accent); font-weight: 700; filter: brightness(0.88); }
+
+  /* ── Canvas area ── */
+  main {
+    grid-area: canvas;
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  #phase-canvas {
+    display: block;
+    cursor: crosshair;
+    width: 100%; height: 100%;
+  }
+  /* Click hint */
+  .canvas-hint {
+    position: absolute; bottom: 14px; right: 16px;
+    font-size: .72rem; color: var(--text-muted);
+    pointer-events: none; letter-spacing: .02em;
+  }
+
+  /* ── Status bar ── */
+  footer {
+    grid-area: status;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 6px 24px;
+    display: flex; align-items: center; gap: 16px;
+    font-size: .72rem; color: var(--text-muted);
+  }
+  #status-msg { flex: 1; }
+  #traj-count { color: var(--accent); font-weight: 700; }
+
+  /* ── Live region ── */
+  #live-region { position: absolute; left: -9999px; }
+
+  /* ── Responsive: stack on small screens ── */
+  @media (max-width: 700px) {
+    .shell { grid-template-columns: 1fr; grid-template-areas: "header" "panel" "canvas" "solution" "status"; }
+    aside { max-height: 55vh; }
+    main { min-height: 45vh; }
+    .solution-bar { overflow-x: auto; padding: 8px 12px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="#phase-canvas" class="skip-link">Skip to phase portrait canvas</a>
+<div aria-live="polite" aria-atomic="true" id="live-region"></div>
+
+<div class="shell">
+
+  <!-- ══ HEADER ══ -->
+  <header>
+    <h1>Matrix ODE <span>Trajectory Plotter</span></h1>
+
+    <span class="badge" aria-label="x-prime equals A x">x′ = Ax</span>
+  </header>
+
+  <!-- ══ SOLUTION BAR ══ -->
+  <div class="solution-bar" aria-label="General solution">
+    <div class="solution-bar-inner">
+      <div class="solution-bar-row">
+        <span class="solution-bar-label">General Solution</span>
+        <div id="solution-display" aria-live="polite" aria-atomic="true" role="status">—</div>
+      </div>
+      <div id="solution-note"></div>
+    </div>
+  </div>
+
+  <!-- ══ SIDE PANEL ══ -->
+  <aside aria-label="Controls">
+
+    <!-- Matrix A -->
+    <fieldset>
+      <legend>Matrix A</legend>
+      <div class="matrix-wrap" role="group" aria-label="2×2 matrix A entries">
+        <span class="bracket" aria-hidden="true">
+          <svg viewBox="0 0 12 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 2 H5 Q2 2 2 5 V83 Q2 86 5 86 H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div class="matrix-grid">
+          <label>a₁₁ <input type="number" id="a11" value="-1" step="0.1" aria-label="Matrix entry row 1 column 1"></label>
+          <label>a₁₂ <input type="number" id="a12" value="1"  step="0.1" aria-label="Matrix entry row 1 column 2"></label>
+          <label>a₂₁ <input type="number" id="a21" value="-1" step="0.1" aria-label="Matrix entry row 2 column 1"></label>
+          <label>a₂₂ <input type="number" id="a22" value="-1" step="0.1" aria-label="Matrix entry row 2 column 2"></label>
+        </div>
+        <span class="bracket" aria-hidden="true">
+          <svg viewBox="0 0 12 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2 H7 Q10 2 10 5 V83 Q10 86 7 86 H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </div>
+    </fieldset>
+
+    <!-- Eigenvalues -->
+    <fieldset>
+      <legend>Eigenvalues</legend>
+      <div class="eigen-box" id="eigen-display" aria-live="polite" aria-atomic="true" role="status">
+        —
+      </div>
+    </fieldset>
+
+    <!-- Origin Type -->
+    <fieldset>
+      <legend>Origin Type</legend>
+      <div class="origin-box" id="origin-display" aria-live="polite" aria-atomic="true" role="status">
+        <span class="origin-label" id="origin-label">—</span>
+      </div>
+    </fieldset>
+
+    <!-- View & integration settings -->
+    <fieldset>
+      <legend>Settings</legend>
+
+      <div class="field" style="margin-bottom:0">
+        <label for="view-range">View range</label>
+        <input type="number" id="view-range" value="4" min="1" max="50" step="0.5" aria-describedby="view-range-desc">
+        <span id="view-range-desc" style="font-size:.7rem;color:var(--text-muted)">±N units &nbsp;·&nbsp; max 50</span>
+        <span id="view-range-error" style="font-size:.7rem;color:var(--accent2);display:none">Please enter a value between 1 and 50.</span>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label for="arrow-density">Arrow field density <span id="density-val" aria-live="polite">15</span></label>
+        <input type="range" id="arrow-density" min="0" max="30" value="15" step="1"
+               aria-valuemin="0" aria-valuemax="30" aria-valuenow="15">
+      </div>
+    </fieldset>
+
+    <!-- Actions -->
+    <div class="btn-row" role="group" aria-label="Canvas actions">
+      <button class="btn active" id="btn-draw-field" aria-describedby="btn-draw-desc">Hide field</button>
+      <button class="btn" id="btn-auto-traj" aria-label="Toggle auto trajectories">Auto trajectories</button>
+    </div>
+    <p id="btn-draw-desc" style="font-size:.7rem;color:var(--text-muted);margin-top:-10px">
+      Click anywhere on the canvas to set an initial condition (x₁, x₂) and trace its trajectory.
+    </p>
+
+  </aside>
+
+  <!-- ══ CANVAS ══ -->
+  <main aria-label="Phase portrait canvas">
+    <canvas id="phase-canvas"
+            tabindex="0"
+            role="img"
+            aria-label="Phase portrait. Click to add trajectories. Press arrow keys to shift view, plus or minus to zoom."
+            aria-describedby="canvas-desc">
+    </canvas>
+    <p id="canvas-desc" class="sr-only" style="position:absolute;left:-9999px">
+      Interactive phase portrait for x′ = Ax. Click anywhere on the canvas to trace a trajectory from that initial condition.
+    </p>
+    <p class="canvas-hint" aria-hidden="true">Click to set initial condition · Use arrow keys to pan · +/− to zoom</p>
+  </main>
+
+  <!-- ══ STATUS BAR ══ -->
+  <footer aria-label="Status">
+    <span id="status-msg">Ready. Click the canvas to plot a trajectory.</span>
+    <span aria-label="Number of trajectories plotted"><span id="traj-count">0</span> trajectories</span>
+  </footer>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   Matrix ODE Trajectory Plotter
+   WCAG 2.2 Level AA
+══════════════════════════════════════════ */
+
+const canvas  = document.getElementById('phase-canvas');
+const ctx     = canvas.getContext('2d');
+const liveReg = document.getElementById('live-region');
+
+// ── State ────────────────────────────────
+const MAX_VIEW = 50;
+const MIN_VIEW = 1;
+let A = [[-1,1],[-1,-1]];
+let viewRange = 4;
+let tMax      = 10;
+let density   = 15;
+let trajectories = [];
+let panOffset    = {x:0, y:0};
+let drawField    = true;
+let animFrame    = null;
+
+// ── Set view range, clamping and syncing UI ──
+function setViewRange(val) {
+  const errEl = document.getElementById('view-range-error');
+  if (!isFinite(val) || val < MIN_VIEW || val > MAX_VIEW) {
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  viewRange = val;
+  document.getElementById('view-range').value = val;
+  redraw();
+}
+
+// ── Resize ───────────────────────────────
+function resize() {
+  canvas.width  = canvas.parentElement.clientWidth  * devicePixelRatio;
+  canvas.height = canvas.parentElement.clientHeight * devicePixelRatio;
+  canvas.style.width  = canvas.parentElement.clientWidth  + 'px';
+  canvas.style.height = canvas.parentElement.clientHeight + 'px';
+  redraw();
+}
+try {
+  new ResizeObserver(resize).observe(canvas.parentElement);
+} catch (e) {
+  window.addEventListener('resize', resize);
+}
+
+// ── Coordinate transforms ─────────────────
+function W() { return canvas.width; }
+function H() { return canvas.height; }
+function toScreen(x, y) {
+  const cx = W()/2 + panOffset.x;
+  const cy = H()/2 + panOffset.y;
+  const scaleX = W() / (2 * viewRange);
+  const scaleY = H() / (2 * viewRange);
+  return { sx: cx + x * scaleX, sy: cy - y * scaleY };
+}
+function toWorld(sx, sy) {
+  const cx = W()/2;
+  const cy = H()/2;
+  const scaleX = W() / (2 * viewRange);
+  const scaleY = H() / (2 * viewRange);
+  return { x: (sx - cx - panOffset.x) / scaleX,
+           y: -(sy - cy - panOffset.y) / scaleY };
+}
+
+// ── Read matrix from inputs ───────────────
+function readMatrix() {
+  A = [
+    [parseFloat(document.getElementById('a11').value)||0,
+     parseFloat(document.getElementById('a12').value)||0],
+    [parseFloat(document.getElementById('a21').value)||0,
+     parseFloat(document.getElementById('a22').value)||0]
+  ];
+  updateEigenDisplay();
+}
+
+// ── Eigenvalue computation ────────────────
+function eigenvalues(m) {
+  const tr   = m[0][0] + m[1][1];
+  const det  = m[0][0]*m[1][1] - m[0][1]*m[1][0];
+  const disc = tr*tr - 4*det;
+  if (disc >= 0) {
+    return [{ re: (tr + Math.sqrt(disc))/2, im: 0 },
+            { re: (tr - Math.sqrt(disc))/2, im: 0 }];
+  } else {
+    return [{ re: tr/2, im:  Math.sqrt(-disc)/2 },
+            { re: tr/2, im: -Math.sqrt(-disc)/2 }];
+  }
+}
+
+function fmt(ev) {
+  const r = ev.re.toFixed(3);
+  if (Math.abs(ev.im) < 1e-9) return r;
+  const sign = ev.im >= 0 ? '+' : '−';
+  return `${r} ${sign} ${Math.abs(ev.im).toFixed(3)}i`;
+}
+
+function stabilityClass(evs) {
+  const isComplex = Math.abs(evs[0].im) > 1e-9;
+  if (isComplex) {
+    const re = evs[0].re;
+    if (Math.abs(re) < 1e-9) return 'centre';
+    return re < 0 ? 'stable-spiral' : 'unstable-spiral';
+  }
+  // Real eigenvalues — classify by sign
+  const l1 = evs[0].re, l2 = evs[1].re;
+  if (l1 < 0 && l2 < 0) return 'sink';
+  if (l1 > 0 && l2 > 0) return 'source';
+  if ((l1 < 0 && l2 > 0) || (l1 > 0 && l2 < 0)) return 'saddle';
+  return 'degenerate';
+}
+
+function updateEigenDisplay() {
+  const evs = eigenvalues(A);
+  const sc  = stabilityClass(evs);
+
+  const eigenLabel = {
+    'sink':            'Both eigenvalues are real and negative',
+    'source':          'Both eigenvalues are real and positive',
+    'stable-spiral':   'Complex eigenvalues with negative real part',
+    'unstable-spiral': 'Complex eigenvalues with positive real part',
+    'saddle':          'One eigenvalue is positive and one is negative',
+    'centre':          'Complex eigenvalues with zero real part',
+    'degenerate':      'Degenerate case',
+  };
+  const cssClass = (sc === 'sink' || sc === 'stable-spiral') ? 'stable'
+                 : (sc === 'centre')                          ? 'neutral'
+                 : 'unstable';
+  const box = document.getElementById('eigen-display');
+  box.innerHTML = `
+    <span class="lam">λ₁ = ${fmt(evs[0])}</span><br>
+    <span class="lam">λ₂ = ${fmt(evs[1])}</span><br>
+    <span class="${cssClass}" style="font-size:.75rem">${eigenLabel[sc]}</span>`;
+
+  // ── Origin type box ──
+  const originLabels = {
+    'sink':            'Attractor (Sink)',
+    'source':          'Repeller (Source)',
+    'stable-spiral':   'Spiral Inward',
+    'unstable-spiral': 'Spiral Outward',
+    'saddle':          'Saddle Point',
+    'centre':          'Ellipses (Centre)',
+    'degenerate':      'Degenerate',
+  };
+  const originClass = (sc === 'sink' || sc === 'stable-spiral')     ? 'stable'
+                    : (sc === 'source' || sc === 'unstable-spiral')  ? 'unstable'
+                    : (sc === 'saddle')                              ? 'saddle'
+                    : 'neutral';
+  const originBox = document.getElementById('origin-display');
+  originBox.className = `origin-box ${originClass}`;
+  document.getElementById('origin-label').textContent = originLabels[sc] ?? '—';
+
+  const msg = `Eigenvalues updated: λ₁ = ${fmt(evs[0])}, λ₂ = ${fmt(evs[1])}. ${originLabels[sc]}.`;
+  liveReg.textContent = msg;
+  updateSolutionDisplay(evs, sc);
+}
+
+// ── Eigenvector computation ───────────────
+// Returns eigenvector for a given eigenvalue (complex {re,im})
+function eigenvector(lam) {
+  // (A - λI)v = 0 — use first row: (a11-λ)v1 + a12*v2 = 0
+  const a = { re: A[0][0] - lam.re, im: -lam.im };
+  const b = { re: A[0][1],          im: 0 };
+  // If a ≈ 0, try second row
+  const magA = Math.hypot(a.re, a.im);
+  const magB = Math.hypot(b.re, b.im);
+  if (magA < 1e-9 && magB < 1e-9) return [{ re:1, im:0 }, { re:0, im:0 }];
+  if (magA < 1e-9) return [{ re:1, im:0 }, { re:0, im:0 }];
+  // v1 = b, v2 = -a (from a*v1 + b*v2 = 0 → set v2=a, v1=-b ... )
+  // set v2 = a, v1 = -b
+  return [
+    { re: -b.re, im: -b.im },
+    { re:  a.re, im:  a.im }
+  ];
+}
+
+function fmtNum(x, digits=3) {
+  if (Math.abs(x) < 1e-9) return '0';
+  const s = parseFloat(x.toFixed(digits));
+  return String(s);
+}
+
+function colVec(a, b) {
+  return `<span class="sol-vec-wrap">
+    <span class="sol-bracket">[</span>
+    <span class="sol-vec-entries"><span>${fmtNum(a)}</span><span>${fmtNum(b)}</span></span>
+    <span class="sol-bracket">]</span>
+  </span>`;
+}
+
+function updateSolutionDisplay(evs, sc) {
+  const box  = document.getElementById('solution-display');
+  const note = document.getElementById('solution-note');
+  const isComplex = Math.abs(evs[0].im) > 1e-9;
+
+  if (isComplex) {
+    const alpha = evs[0].re, beta = evs[0].im;
+    const aStr  = fmtNum(alpha), bStr = fmtNum(Math.abs(beta));
+    const v     = eigenvector(evs[0]);
+    const p0 = v[0].re, p1 = v[1].re;
+    const q0 = v[0].im, q1 = v[1].im;
+    const expStr = Math.abs(alpha) < 1e-9 ? '' : `e<sup style="font-size:.75em;font-weight:700;color:var(--text)">${aStr}t</sup>`;
+    const lamStr = Math.abs(alpha) < 1e-9 ? `λ = ±${bStr}i` : `λ = ${aStr} ± ${bStr}i`;
+
+    box.innerHTML =
+      `<span class="sol-term">x(t) = <span class="sol-c">c₁</span>${expStr}<span class="sol-trig">(cos(${bStr}t)${colVec(p0,p1)} − sin(${bStr}t)${colVec(q0,q1)})</span></span>` +
+      `<span class="sol-plus">+</span>` +
+      `<span class="sol-term"><span class="sol-c">c₂</span>${expStr}<span class="sol-trig">(sin(${bStr}t)${colVec(p0,p1)} + cos(${bStr}t)${colVec(q0,q1)})</span></span>`;
+    note.textContent = `The matrix has complex eigenvalues ${lamStr}. Real-valued solutions are obtained by applying Euler's formula to separate the complex exponential into its trigonometric components. The constants c₁ and c₂ are determined by the initial conditions of the system.`;
+  } else {
+    const l1 = evs[0].re, l2 = evs[1].re;
+    const v1 = eigenvector(evs[0]);
+    const v2 = eigenvector(evs[1]);
+    const styledExp = (lStr) =>
+      `e<sup style="font-size:.75em;font-weight:700;color:var(--text)">${lStr}t</sup>`;
+
+    if (Math.abs(l1 - l2) < 1e-9) {
+      const lStr = fmtNum(l1);
+      box.innerHTML =
+        `<span class="sol-term">x(t) = <span class="sol-c">c₁</span>${styledExp(lStr)}${colVec(v1[0].re, v1[1].re)}</span>` +
+        `<span class="sol-plus">+</span>` +
+        `<span class="sol-term"><span class="sol-c">c₂</span>${styledExp(lStr)}(t·${colVec(v1[0].re, v1[1].re)} + <span style="color:var(--text-muted)">v₂</span>)</span>`;
+      note.textContent = `The matrix has a repeated eigenvalue λ = ${lStr}. Because there is only one independent eigenvector, a generalized eigenvector v₂ is required to form a complete solution. The constants c₁ and c₂ are determined by the initial conditions of the system.`;
+    } else {
+      const l1Str = fmtNum(l1), l2Str = fmtNum(l2);
+      box.innerHTML =
+        `<span class="sol-term">x(t) = <span class="sol-c">c₁</span>${styledExp(l1Str)}${colVec(v1[0].re, v1[1].re)}</span>` +
+        `<span class="sol-plus">+</span>` +
+        `<span class="sol-term"><span class="sol-c">c₂</span>${styledExp(l2Str)}${colVec(v2[0].re, v2[1].re)}</span>`;
+      note.textContent = `The matrix has two distinct real eigenvalues. The general solution is a linear combination of the corresponding exponential modes, each scaled by its associated eigenvector. The constants c₁ and c₂ are determined by the initial conditions of the system.`;
+    }
+  }
+}
+function f(x, y) {
+  return { dx: A[0][0]*x + A[0][1]*y,
+           dy: A[1][0]*x + A[1][1]*y };
+}
+function rk4Step(x, y, h) {
+  const k1 = f(x, y);
+  const k2 = f(x + h*k1.dx/2, y + h*k1.dy/2);
+  const k3 = f(x + h*k2.dx/2, y + h*k2.dy/2);
+  const k4 = f(x + h*k3.dx, y + h*k3.dy);
+  return {
+    x: x + h*(k1.dx + 2*k2.dx + 2*k3.dx + k4.dx)/6,
+    y: y + h*(k1.dy + 2*k2.dy + 2*k3.dy + k4.dy)/6
+  };
+}
+
+function integrate(x0, y0, direction=1) {
+  const xRatio  = W() / H();
+  const xExtent = viewRange * xRatio * 1.2;
+  const yExtent = viewRange * 1.2;
+  const h = direction * 0.02;
+  const maxSteps = Math.ceil(viewRange * 600);
+  const pts = [{x:x0, y:y0, t:0, speed: Math.hypot(f(x0,y0).dx, f(x0,y0).dy)}];
+  let {x, y} = {x:x0, y:y0};
+  let offScreenCount = 0;
+  for (let i = 1; i <= maxSteps; i++) {
+    const next = rk4Step(x, y, h);
+    x = next.x; y = next.y;
+    if (!isFinite(x) || !isFinite(y)) break;
+    const spd = Math.hypot(f(x,y).dx, f(x,y).dy);
+    pts.push({x, y, t: i * Math.abs(h), speed: spd});
+    if (Math.abs(x) > xExtent || Math.abs(y) > yExtent) {
+      offScreenCount++;
+      if (offScreenCount > 3) break;
+    } else {
+      offScreenCount = 0;
+    }
+  }
+  return pts;
+}
+
+// ── Color helpers ─────────────────────────
+function speedColor(spd, maxSpd) {
+  const t = Math.min(spd / (maxSpd+1e-9), 1);
+  const r = Math.round(lerp(29, 185, t));
+  const g = Math.round(lerp(78, 28, t));
+  const b = Math.round(lerp(216, 28, t));
+  return `rgb(${r},${g},${b})`;
+}
+function lerp(a, b, t) { return a + (b-a)*t; }
+
+// ── Draw axes & grid ─────────────────────
+function drawAxes() {
+  const dpr = devicePixelRatio;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(15,23,42,0.07)';
+  ctx.lineWidth   = 1 * dpr;
+
+  // World extents differ per axis
+  const scaleX = W() / (2 * viewRange);
+  const scaleY = H() / (2 * viewRange);
+  const worldRangeX = W() / (2 * scaleX); // = viewRange
+  const worldRangeY = H() / (2 * scaleY); // = viewRange
+  // But canvas aspect ratio means x covers more world if wider than tall
+  const xRatio = W() / H();
+  const xWorldRange = viewRange * xRatio;
+  const yWorldRange = viewRange;
+
+  // grid — cover full canvas extent in each axis
+  const xMin = Math.ceil(-xWorldRange), xMax = Math.floor(xWorldRange);
+  const yMin = Math.ceil(-yWorldRange), yMax = Math.floor(yWorldRange);
+
+  for (let v = xMin; v <= xMax; v++) {
+    const {sx: gx} = toScreen(v, 0);
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H()); ctx.stroke();
+  }
+  for (let v = yMin; v <= yMax; v++) {
+    const {sy: gy} = toScreen(0, v);
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W(), gy); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = 'rgba(15,23,42,0.20)';
+  ctx.lineWidth   = 1.5 * dpr;
+  const {sx:ax0} = toScreen(0,0), {sy:ay0} = toScreen(0,0);
+  ctx.beginPath(); ctx.moveTo(ax0, 0);    ctx.lineTo(ax0, H()); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,  ay0);   ctx.lineTo(W(), ay0); ctx.stroke();
+
+  // tick labels — pick step sizes per axis to avoid crowding
+  const minPx = 36 * dpr;
+  const niceSteps = [1,2,5,10,20,50,100];
+  const xTickStep = niceSteps.find(s => s >= Math.ceil(minPx / scaleX)) ?? 1;
+  const yTickStep = niceSteps.find(s => s >= Math.ceil(minPx / scaleY)) ?? 1;
+
+  ctx.fillStyle  = '#475569';
+  ctx.font       = `${10*dpr}px "Courier New"`;
+  ctx.textAlign  = 'center';
+  for (let v = xMin; v <= xMax; v++) {
+    if (v === 0 || v % xTickStep !== 0) continue;
+    const {sx: gx} = toScreen(v, 0);
+    ctx.fillText(v, gx, ay0 + 14*dpr);
+  }
+  ctx.textAlign = 'right';
+  for (let v = yMin; v <= yMax; v++) {
+    if (v === 0 || v % yTickStep !== 0) continue;
+    const {sy: gy2} = toScreen(0, v);
+    ctx.fillText(v, ax0 - 6*dpr, gy2 + 4*dpr);
+  }
+
+  // labels
+  ctx.fillStyle = '#475569';
+  ctx.font      = `italic ${11*dpr}px "Courier New"`;
+  ctx.fillText('x₁', W()-20*dpr, ay0-8*dpr);
+  ctx.textAlign = 'left';
+  ctx.fillText('x₂', ax0+8*dpr, 16*dpr);
+
+  ctx.restore();
+}
+
+// ── Draw velocity field ───────────────────
+function drawVectorField() {
+  if (density === 0) return;
+  const dpr    = devicePixelRatio;
+  const xRatio = W() / H();
+  const xWorldRange = viewRange * xRatio;
+  const yWorldRange = viewRange;
+  const nx     = Math.round(density * xRatio);
+  const ny     = density;
+  const stepX  = (2 * xWorldRange) / nx;
+  const stepY  = (2 * yWorldRange) / ny;
+  const scaleX = W() / (2 * xWorldRange);
+  const scaleY = H() / (2 * yWorldRange);
+  const arrowLen = Math.min(stepX * scaleX, stepY * scaleY) * 0.38;
+
+  ctx.save();
+  for (let i = 0; i <= nx; i++) {
+    for (let j = 0; j <= ny; j++) {
+      const wx = -xWorldRange + i * stepX;
+      const wy = -yWorldRange + j * stepY;
+      const {dx, dy} = f(wx, wy);
+      const mag = Math.hypot(dx, dy);
+      if (mag < 1e-12) continue;
+      const ux  = dx/mag, uy = dy/mag;
+      const {sx, sy} = toScreen(wx, wy);
+      const ex = sx + ux * arrowLen;
+      const ey = sy - uy * arrowLen;
+
+      // color by magnitude
+      const t = Math.min(mag / (viewRange*3+1), 1);
+      const r = Math.round(lerp(100, 29, t));
+      const g = Math.round(lerp(160, 78, t));
+      const b = Math.round(lerp(230, 216, t));
+      ctx.strokeStyle = `rgba(${r},${g},${b},0.55)`;
+      ctx.lineWidth   = 1 * dpr;
+
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+
+      // arrowhead
+      const headLen = 4 * dpr;
+      const angle   = Math.atan2(ey-sy, ex-sx);
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - headLen*Math.cos(angle-0.4), ey - headLen*Math.sin(angle-0.4));
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - headLen*Math.cos(angle+0.4), ey - headLen*Math.sin(angle+0.4));
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ── Draw equilibrium dot ─────────────────
+function drawEquilibrium() {
+  const {sx, sy} = toScreen(0, 0);
+  const dpr = devicePixelRatio;
+  const sc  = stabilityClass(eigenvalues(A));
+  const color = '#0d9488';
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(sx, sy, 5*dpr, 0, 2*Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth   = 1.5*dpr;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Draw a trajectory ─────────────────────
+function drawTrajectory(pts, maxSpd) {
+  if (pts.length < 2) return;
+  const dpr = devicePixelRatio;
+  const totalT = pts[pts.length-1].t;
+
+  ctx.save();
+  ctx.lineWidth   = 1.8 * dpr;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  // Draw as one continuous path per trajectory — no gaps possible
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  let drawing = false;
+  let prevSx = null, prevSy = null;
+  for (let i = 0; i < pts.length; i++) {
+    const {sx, sy} = toScreen(pts[i].x, pts[i].y);
+    if (!drawing) {
+      ctx.moveTo(sx, sy);
+      drawing = true;
+    } else {
+      ctx.lineTo(sx, sy);
+    }
+    prevSx = sx; prevSy = sy;
+  }
+  ctx.strokeStyle = speedColor(
+    pts.reduce((s, p) => s + p.speed, 0) / pts.length,
+    maxSpd
+  );
+  ctx.stroke();
+
+  // arrowheads: spread evenly by screen-space arc length on the visible forward segment
+  const fwdPts = pts.filter(p => !p.backward);
+
+  // Build list of on-screen forward points with cumulative screen arc length
+  const visibleArc = [];
+  let arcLen = 0;
+  for (let i = 0; i < fwdPts.length; i++) {
+    const {sx, sy} = toScreen(fwdPts[i].x, fwdPts[i].y);
+    if (sx < 0 || sx > W() || sy < 0 || sy > H()) continue;
+    if (visibleArc.length > 0) {
+      const prev = visibleArc[visibleArc.length - 1];
+      arcLen += Math.hypot(sx - prev.sx, sy - prev.sy);
+    }
+    visibleArc.push({idx: i, sx, sy, arc: arcLen});
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth   = 1.5 * dpr;
+
+  const arrowFractions = [0.25, 0.75];
+  for (const frac of arrowFractions) {
+    const target = frac * arcLen;
+    // Find the point closest to this arc length position
+    const entry = visibleArc.find(p => p.arc >= target) ?? visibleArc[visibleArc.length - 1];
+    if (!entry) continue;
+    const idx = entry.idx;
+    if (idx < 1 || idx >= fwdPts.length) continue;
+    const p1 = toScreen(fwdPts[idx-1].x, fwdPts[idx-1].y);
+    const p2 = toScreen(fwdPts[idx].x,   fwdPts[idx].y);
+    const dx = p2.sx - p1.sx, dy = p2.sy - p1.sy;
+    if (Math.hypot(dx, dy) < 1) continue;
+    const angle = Math.atan2(dy, dx);
+    const head  = 8 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(p2.sx, p2.sy);
+    ctx.lineTo(p2.sx - head*Math.cos(angle-0.45), p2.sy - head*Math.sin(angle-0.45));
+    ctx.moveTo(p2.sx, p2.sy);
+    ctx.lineTo(p2.sx - head*Math.cos(angle+0.45), p2.sy - head*Math.sin(angle+0.45));
+    ctx.stroke();
+  }
+
+  // initial condition dot
+  const ic = toScreen(pts[0].x, pts[0].y);
+  ctx.globalAlpha  = 1;
+  ctx.fillStyle    = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(ic.sx, ic.sy, 3.5*dpr, 0, 2*Math.PI);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── Build combined pts for one IC ────────
+function buildTrajectory(x0, y0) {
+  const fwd = integrate(x0, y0,  1);
+  const bwd = integrate(x0, y0, -1);
+  const bwdRev = bwd.slice(1).reverse().map(p => ({...p, backward: true}));
+  return [...bwdRev, ...fwd];
+}
+
+// ── Full redraw ───────────────────────────
+function redraw() {
+  ctx.clearRect(0, 0, W(), H());
+  drawAxes();
+  if (drawField) drawVectorField();
+  // Re-integrate every trajectory so they always fill the current view
+  const builtPts = trajectories.map(ic => buildTrajectory(ic.x0, ic.y0));
+  let maxSpd = 1;
+  builtPts.forEach(pts => pts.forEach(p => { if (p.speed > maxSpd) maxSpd = p.speed; }));
+  builtPts.forEach(pts => drawTrajectory(pts, maxSpd));
+  drawEquilibrium();
+}
+
+// ── Add trajectory from click ─────────────
+function addTrajectory(x0, y0) {
+  trajectories.push({x0, y0});
+  document.getElementById('traj-count').textContent = trajectories.length;
+  document.getElementById('status-msg').textContent  = `Trajectory from (${x0.toFixed(2)}, ${y0.toFixed(2)}) added.`;
+  liveReg.textContent = `Trajectory from x₁ = ${x0.toFixed(2)}, x₂ = ${y0.toFixed(2)} added. Total: ${trajectories.length}.`;
+  redraw();
+}
+
+// ── Canvas click ─────────────────────────
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const dpr  = devicePixelRatio;
+  const sx   = (e.clientX - rect.left) * dpr;
+  const sy   = (e.clientY - rect.top)  * dpr;
+  const {x, y} = toWorld(sx, sy);
+  addTrajectory(x, y);
+});
+
+// ── Keyboard interaction on canvas ───────
+canvas.addEventListener('keydown', e => {
+  const step = viewRange * 0.08;
+  switch (e.key) {
+    case 'ArrowLeft':  panOffset.x -= step * Math.min(W(),H())/(2*viewRange); redraw(); e.preventDefault(); break;
+    case 'ArrowRight': panOffset.x += step * Math.min(W(),H())/(2*viewRange); redraw(); e.preventDefault(); break;
+    case 'ArrowUp':    panOffset.y -= step * Math.min(W(),H())/(2*viewRange); redraw(); e.preventDefault(); break;
+    case 'ArrowDown':  panOffset.y += step * Math.min(W(),H())/(2*viewRange); redraw(); e.preventDefault(); break;
+    case '+': case '=': setViewRange(Math.max(MIN_VIEW, Math.round(viewRange) - 1)); e.preventDefault(); break;
+    case '-': case '_': setViewRange(Math.min(MAX_VIEW, Math.round(viewRange) + 1)); e.preventDefault(); break;
+    case 'Enter': case ' ': {
+      // add trajectory at canvas centre
+      const {x, y} = toWorld(W()/2, H()/2);
+      addTrajectory(x + (Math.random()-.5)*viewRange*.5, y + (Math.random()-.5)*viewRange*.5);
+      e.preventDefault(); break;
+    }
+  }
+});
+
+// ── Control event listeners ───────────────
+['a11','a12','a21','a22'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    readMatrix();
+    trajectories = [];
+    document.getElementById('traj-count').textContent = '0';
+    document.getElementById('btn-auto-traj').classList.remove('active');
+    redraw();
+  });
+});
+
+document.getElementById('view-range').addEventListener('input', e => {
+  setViewRange(parseFloat(e.target.value));
+});
+document.getElementById('arrow-density').addEventListener('input', e => {
+  density = parseInt(e.target.value);
+  document.getElementById('density-val').textContent = density;
+  redraw();
+});
+
+document.getElementById('btn-draw-field').addEventListener('click', () => {
+  drawField = !drawField;
+  const btn = document.getElementById('btn-draw-field');
+  btn.textContent = drawField ? 'Hide field' : 'Draw field';
+  btn.classList.toggle('active', drawField);
+  liveReg.textContent = drawField ? 'Velocity field shown.' : 'Velocity field hidden.';
+  redraw();
+});
+
+document.getElementById('btn-auto-traj').addEventListener('click', () => {
+  const btn = document.getElementById('btn-auto-traj');
+  const isActive = btn.classList.contains('active');
+  if (isActive) {
+    // toggle off — clear auto trajectories
+    trajectories = [];
+    document.getElementById('traj-count').textContent = '0';
+    document.getElementById('status-msg').textContent = 'Auto trajectories cleared.';
+    liveReg.textContent = 'Auto trajectories cleared.';
+    btn.classList.remove('active');
+  } else {
+    // toggle on — plot auto trajectories
+    trajectories = [];
+    document.getElementById('traj-count').textContent = '0';
+    const r = viewRange * 0.65;
+    const pts = 12;
+    for (let i = 0; i < pts; i++) {
+      const angle = (2*Math.PI*i)/pts;
+      addTrajectory(r*Math.cos(angle), r*Math.sin(angle));
+    }
+    document.getElementById('status-msg').textContent = `Auto-plotted ${pts} trajectories.`;
+    liveReg.textContent = `Automatically plotted ${pts} trajectories arranged in a circle.`;
+    btn.classList.add('active');
+  }
+  redraw();
+});
+
+// ── Init ─────────────────────────────────
+readMatrix();
+resize();
+</script>
+</body>
+</html>
